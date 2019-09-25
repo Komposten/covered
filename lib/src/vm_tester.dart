@@ -111,8 +111,7 @@ class VmTester extends Tester {
     var formatter = coverage.LcovFormatter(resolver,
         reportOn: ['lib${path.separator}'], basePath: projectDir);
     var data = await formatter.format(hitmap);
-    var file =
-        File(path.join(projectDir, '.covered', 'reports', 'lcov_vm.info'));
+    var file = File(path.join(reportsDir, 'lcov_vm.info'));
     await file.create(recursive: true);
     await file.writeAsString(data);
 

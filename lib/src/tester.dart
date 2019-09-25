@@ -16,6 +16,12 @@ abstract class Tester {
   final String projectDir;
   final String platform;
 
+  String get outputDir => path.join(projectDir, '.covered');
+
+  String get internalDir => path.join(outputDir, 'internal');
+
+  String get reportsDir => path.join(outputDir, 'reports');
+
   Tester(this.projectDir, this.platform);
 
   Future<void> testAndCollect(
@@ -28,8 +34,7 @@ abstract class Tester {
   }
 
   Future<File> _buildTestEntryPoint(List<TestInfo> tests) async {
-    var file = File(path.join(
-        projectDir, '.covered', 'internal', '${platform}_entrypoint.dart'));
+    var file = File(path.join(internalDir, '${platform}_entrypoint.dart'));
     var output = StringBuffer();
 
     var data = tests.map((test) {
