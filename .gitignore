@@ -9,6 +9,9 @@ build/
 # Directory created by dartdoc
 doc/api/
 
+# covered test coverage reports
+.covered/
+
 # IntelliJ project files
 covered.iml
 .idea/

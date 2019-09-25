@@ -7,25 +7,51 @@
  * it under the terms of the MIT license as written in the LICENSE file in the root
  * of this project.
  */
+import 'dart:io';
+import 'package:covered/src/test_parser.dart';
+import 'package:covered/src/testinfo.dart';
+import 'package:covered/src/utilities.dart';
+import 'package:covered/src/vm_tester.dart' as vm_tester;
+import 'package:path/path.dart' as path;
+
 Future<void> collectTestCoverage(
-    List<String> platforms, List<String> testArgs) async {
-  await Future.forEach(platforms, (platform) {
-    _testAndCollect(platform, testArgs);
+    List<String> platforms, bool printTestOutput, List<String> testArgs) async {
+  stdout.writeln('Searching for test files...');
+  var tests = await _getTestFiles();
+  stdout.writeln('>> ${tests.length} test files found!');
+  await Future.forEach(platforms, (platform) async {
+    stdout.writeln(
+        '\nRunning tests and coverage analysis for platform \'$platform\'...');
+    await _testAndCollect(platform, testArgs, tests, printTestOutput);
   });
 }
 
-Future<void> _testAndCollect(String platform, List<String> testArgs) async {
+Future<List<TestInfo>> _getTestFiles() async {
+  var testRoot = Directory(path.join(Directory.current.path, 'test'));
+  var testParser = TestParser();
+  var files = await testRoot.list(recursive: true);
+  return files
+      .where((entity) =>
+          entity.path.endsWith('_test.dart') &&
+          entity.statSync().type == FileSystemEntityType.file)
+      .map(testParser.parse)
+      .toList();
+}
+
+Future<void> _testAndCollect(String platform, List<String> testArgs,
+    List<TestInfo> tests, bool printTestOutput) async {
+  tests = tests
+      .where((test) =>
+          test.testOn.isEmpty || testOnPlatform(test.testOn, platform))
+      .toList();
   if (platform == 'vm') {
-    _vmTestAndCollect(testArgs);
+    await vm_tester.testAndCollect(testArgs, tests, printTestOutput);
   } else {
-    _browserTestAndCollect(testArgs);
+    _browserTestAndCollect(platform, testArgs, tests, printTestOutput);
   }
 }
 
-void _vmTestAndCollect(List<String> testArgs) {
-  throw UnimplementedError('VM testing hasn\'t been implemented yet.');
-}
-
-void _browserTestAndCollect(List<String> testArgs) {
+void _browserTestAndCollect(
+    String platform, List<String> testArgs, List<TestInfo> tests, bool printTestOutput) {
   throw UnimplementedError('Browser testing hasn\'t been implemented yet.');
 }
