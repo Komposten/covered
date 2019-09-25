@@ -22,6 +22,7 @@ Future<void> main(List<String> arguments) async {
   parser.addMultiOption('platforms',
       abbr: 'p',
       defaultsTo: ['vm'],
+      allowed: ['vm', 'chrome'],
       help: 'Specify what platforms to run tests on.',
       valueHelp: 'PLATFORMS');
   parser.addFlag('test-output',

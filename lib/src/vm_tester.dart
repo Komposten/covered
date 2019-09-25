@@ -12,132 +12,110 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:coverage/coverage.dart' as coverage;
-import 'package:covered/src/testinfo.dart';
+import 'package:covered/src/tester.dart';
 import 'package:path/path.dart' as path;
 
-Future<void> testAndCollect(
-    List<String> testArgs, List<TestInfo> tests, bool printTestOutput) async {
-  File testFile = await _buildTestEntryPoint(tests);
+class VmTester extends Tester {
+  VmTester(String projectDir) : super(projectDir, 'vm');
 
-  var coverageData = await _runTests(testFile, printTestOutput);
-  var coverageFile = await _compileCoverageReport(coverageData);
+  @override
+  Future<File> runTestsAndCollect(File entrypoint, bool printTestOutput) async {
+    var coverageData = await _runTests(entrypoint, printTestOutput);
+    return await _compileCoverageReport(coverageData);
+  }
 
-  stdout.writeln('>> VM coverage report written to ${coverageFile.path}');
-}
+  //This method is heavily inspired by the `test_coverage` package.
+  //(https://pub.dev/packages/test_coverage)
+  Future<Map<String, dynamic>> _runTests(
+      File entrypoint, bool printTestOutput) async {
+    Process process = await startTestRunner(entrypoint);
 
-Future<File> _buildTestEntryPoint(List<TestInfo> tests) async {
-  var file = File(path.join(
-      Directory.current.path, '.covered', 'internal', 'vm_entrypoint.dart'));
-  var output = StringBuffer();
+    var uriCompleter = Completer<Uri>();
+    process.stdout
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+      if (!uriCompleter.isCompleted) {
+        final uri = _getObservatoryUri(line);
+        if (uri != null) {
+          uriCompleter.complete(uri);
+        } else {
+          uriCompleter.completeError(line);
+        }
+      }
 
-  var data = tests.map((test) {
-    var uri = test.file.absolute.uri;
-    var name = path.basenameWithoutExtension(test.file.path);
-    return {'uri': uri.toString(), 'name': name};
-  });
+      if (printTestOutput) {
+        stdout.writeln('>> $line');
+      }
+    });
 
-  data.forEach(
-      (e) => output.write('import \'${e['uri']}\' as ${e['name']};\n'));
-  output.write('\nvoid main() {\n');
-  data.forEach((e) => output.write('\t${e['name']}.main();\n'));
-  output.write('}\n');
+    var observatoryUri = await uriCompleter.future.catchError((e) {
+      process.kill(ProcessSignal.sigkill);
+    });
 
-  await file.create(recursive: true);
-  await file.writeAsString(output.toString());
-  return file;
-}
+    if (observatoryUri != null) {
+      Map<String, dynamic> data;
+      try {
+        data = await coverage.collect(observatoryUri, true, true, false, {});
+      } finally {
+        await process.stderr.drain();
+      }
 
-//This method is heavily inspired by the `test_coverage` package.
-//(https://pub.dev/packages/test_coverage)
-Future<Map<String, dynamic>> _runTests(
-    File entrypoint, bool printTestOutput) async {
-  Process process = await startTestRunner(entrypoint);
+      var exitCode = await process.exitCode;
+      if (exitCode != 0) {
+        throw 'Testing failed with exit code $exitCode';
+      }
 
-  var uriCompleter = Completer<Uri>();
-  process.stdout
-      .transform(utf8.decoder)
-      .transform(const LineSplitter())
-      .listen((line) {
-    if (!uriCompleter.isCompleted) {
-      final uri = _getObservatoryUri(line);
-      if (uri != null) {
-        uriCompleter.complete(uri);
-      } else {
-        uriCompleter.completeError(line);
+      return data;
+    } else {
+      throw StateError(
+          'The observatory was not enabled; try using a different port!');
+    }
+  }
+
+  Future<Process> startTestRunner(File entrypoint) async {
+    final dartArgs = [
+      '--pause-isolates-on-exit',
+      '--enable_asserts',
+      '--enable-vm-service=8787',
+      //TODO(komposten): Add a command line option for the port.
+      entrypoint.path
+    ];
+
+    var process =
+        await Process.start('dart', dartArgs, workingDirectory: projectDir);
+    return process;
+  }
+
+  Uri _getObservatoryUri(String str) {
+    final regex = RegExp(r'Observatory listening on ([^\s]+)(?:\s|$)');
+    final match = regex.firstMatch(str);
+    Uri uri;
+
+    if (match != null) {
+      try {
+        uri = Uri.parse(match.group(1));
+      } on FormatException {
+        //invalid uri; return null
       }
     }
 
-    if (printTestOutput) {
-      stdout.writeln('>> $line');
-    }
-  });
-
-  var observatoryUri = await uriCompleter.future.catchError((e) {
-    process.kill(ProcessSignal.sigkill);
-  });
-
-  if (observatoryUri != null) {
-    Map<String, dynamic> data;
-    try {
-      data = await coverage.collect(observatoryUri, true, true, false, {});
-    } finally {
-      await process.stderr.drain();
-    }
-
-    var exitCode = await process.exitCode;
-    if (exitCode != 0) {
-      throw 'Testing failed with exit code $exitCode';
-    }
-
-    return data;
-  } else {
-    throw StateError(
-        'The observatory was not enabled; try using a different port!');
-  }
-}
-
-Future<Process> startTestRunner(File entrypoint) async {
-  final dartArgs = [
-    '--pause-isolates-on-exit',
-    '--enable_asserts',
-    '--enable-vm-service=8787',
-    //TODO(komposten): Add a command line option for the port.
-    entrypoint.path
-  ];
-
-  var process = await Process.start('dart', dartArgs,
-      workingDirectory: Directory.current.path);
-  return process;
-}
-
-Uri _getObservatoryUri(String str) {
-  final regex = RegExp(r'Observatory listening on ([^\s]+)(?:\s|$)');
-  final match = regex.firstMatch(str);
-  Uri uri;
-
-  if (match != null) {
-    try {
-      uri = Uri.parse(match.group(1));
-    } on FormatException {
-      //invalid uri; return null
-    }
+    return uri;
   }
 
-  return uri;
-}
+  Future<File> _compileCoverageReport(Map<String, dynamic> coverageData) async {
+    var hitmap = coverage.createHitmap(coverageData['coverage']);
+    var resolver = coverage.Resolver(
+      packagesPath: path.join(projectDir, '.packages'),
+    );
+    var formatter = coverage.LcovFormatter(resolver,
+        reportOn: ['lib${path.separator}'], basePath: projectDir);
+    var data = await formatter.format(hitmap);
+    var file =
+        File(path.join(projectDir, '.covered', 'reports', 'lcov_vm.info'));
+    await file.create(recursive: true);
+    await file.writeAsString(data);
 
-Future<File> _compileCoverageReport(Map<String, dynamic> coverageData) async {
-  var hitmap = coverage.createHitmap(coverageData['coverage']);
-  var resolver = coverage.Resolver(
-    packagesPath: path.join(Directory.current.path, '.packages'),
-  );
-  var formatter = coverage.LcovFormatter(resolver,
-      reportOn: ['lib${path.separator}'], basePath: Directory.current.path);
-  var data = await formatter.format(hitmap);
-  var file = File(
-      path.join(Directory.current.path, '.covered', 'reports', 'lcov_vm.info'));
-  await file.create(recursive: true);
-  await file.writeAsString(data);
-
-  return file;
+    return file;
+  }
 }

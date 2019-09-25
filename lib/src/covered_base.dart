@@ -8,10 +8,12 @@
  * of this project.
  */
 import 'dart:io';
+import 'package:covered/src/chrome_tester.dart';
 import 'package:covered/src/test_parser.dart';
+import 'package:covered/src/tester.dart';
 import 'package:covered/src/testinfo.dart';
 import 'package:covered/src/utilities.dart';
-import 'package:covered/src/vm_tester.dart' as vm_tester;
+import 'package:covered/src/vm_tester.dart';
 import 'package:path/path.dart' as path;
 
 Future<void> collectTestCoverage(
@@ -44,14 +46,16 @@ Future<void> _testAndCollect(String platform, List<String> testArgs,
       .where((test) =>
           test.testOn.isEmpty || testOnPlatform(test.testOn, platform))
       .toList();
-  if (platform == 'vm') {
-    await vm_tester.testAndCollect(testArgs, tests, printTestOutput);
-  } else {
-    _browserTestAndCollect(platform, testArgs, tests, printTestOutput);
-  }
-}
+  var workingDir = Directory.current.path;
+  Tester tester;
 
-void _browserTestAndCollect(
-    String platform, List<String> testArgs, List<TestInfo> tests, bool printTestOutput) {
-  throw UnimplementedError('Browser testing hasn\'t been implemented yet.');
+  if (platform == 'vm') {
+    tester = VmTester(workingDir);
+  } else if (platform == 'chrome') {
+    tester = ChromeTester(workingDir);
+  } else {
+    throw ArgumentError('Unsupported testing platform: $platform');
+  }
+
+  await tester.testAndCollect(testArgs, tests, printTestOutput);
 }
