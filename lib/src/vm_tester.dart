@@ -28,7 +28,7 @@ class VmTester extends Tester {
   //(https://pub.dev/packages/test_coverage)
   Future<Map<String, dynamic>> _runTests(
       File entrypoint, bool printTestOutput) async {
-    Process process = await startTestRunner(entrypoint);
+    Process process = await _startTestRunner(entrypoint);
 
     var uriCompleter = Completer<Uri>();
     process.stdout
@@ -73,7 +73,7 @@ class VmTester extends Tester {
     }
   }
 
-  Future<Process> startTestRunner(File entrypoint) async {
+  Future<Process> _startTestRunner(File entrypoint) async {
     final dartArgs = [
       '--pause-isolates-on-exit',
       '--enable_asserts',
@@ -82,9 +82,7 @@ class VmTester extends Tester {
       entrypoint.path
     ];
 
-    var process =
-        await Process.start('dart', dartArgs, workingDirectory: projectDir);
-    return process;
+    return await Process.start('dart', dartArgs, workingDirectory: projectDir);
   }
 
   Uri _getObservatoryUri(String str) {
