@@ -1,18 +1,18 @@
-/*
-* Copyright 2019 Jakob Hjelm (Komposten)
-*
-* This file is part of covered.
-*
-* covered is a free Dart library: you can use, redistribute it and/or modify
-* it under the terms of the MIT license as written in the LICENSE file in the root
-* of this project.
-*/
+<!--
+  Copyright 2019 Jakob Hjelm (Komposten)
+
+  This file is part of covered.
+
+  covered is a free Dart library: you can use, redistribute it and/or modify
+  it under the terms of the MIT license as written in the LICENSE file in the root
+  of this project.
+-->
 <html>
 <head>
     <title>covered - Dart test coverage</title>
     <style>
         body {
-          background: black;
+          background: #1e1e1e;
         }
 
         body div {
@@ -34,7 +34,7 @@
             height: 1px;
             border: 0;
             background: #999;
-            background: linear-gradient(to right, black, #999, #999, #999, black);
+            background: linear-gradient(to right, #1e1e1e, #999, #999, #999, #1e1e1e);
         }
 
         div {
@@ -47,7 +47,7 @@
 
         table {
           margin: auto;
-          margin-top: 25px;
+          margin-bottom: 25px;
         }
 
         td {
@@ -73,21 +73,21 @@
 <div>
     <img src="https://drive.google.com/uc?export=view&id=1l88SLdVvNgqtuIRAXHV7rNxQz_dq1YGU"/>
     <hr>
-    <span id="test-title"></span>
     <table>
-        <tr>
+        <tr title="Passed tests">
             <td><span class="pass">&#10004;</span></td>
             <td><span id="pass">0</span></td>
         </tr>
-        <tr>
+        <tr title="Skipped tests">
             <td><span class="skip">&#9679;</span></td>
             <td><span id="skip">0</span></td>
         </tr>
-        <tr>
+        <tr title="Failed tests">
             <td><span class="fail">&#10060;</span></td>
             <td><span id="fail">0</span></td>
         </tr>
     </table>
+    <span id="test-title"></span>
     </p>
 </div>
 <script type="text/javascript">
