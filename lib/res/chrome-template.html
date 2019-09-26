@@ -2,30 +2,123 @@
 <head>
     <title>covered - Dart test coverage</title>
     <style>
-    body {
-      background: black;
-    }
+        body {
+          background: black;
+        }
 
-    body div {
-      top: 50%;
-      transform: translateY(-50%);
-      -ms-transform: translateY(-50%);
-      position: relative;
-      width: fit-content;
-      margin: auto;
-    }
+        body div {
+          top: 50%;
+          transform: translateY(-50%);
+          -ms-transform: translateY(-50%);
+          position: relative;
+          width: fit-content;
+          margin: auto;
+        }
 
-    body img {
-      width: 250px;
-      height: auto;
-    }
+        body img {
+          width: 250px;
+          height: auto;
+        }
+
+        hr {
+            margin: 25px 0;
+            height: 1px;
+            border: 0;
+            background: #999;
+            background: linear-gradient(to right, black, #999, #999, #999, black);
+        }
+
+        div {
+            text-align: center;
+        }
+
+        #test-title {
+            color: #CBCC8F;
+        }
+
+        table {
+          margin: auto;
+          margin-top: 25px;
+        }
+
+        td {
+          padding: 5px 10px;
+          text-align: center;
+        }
+
+        #pass, .pass {
+            color: #81BF23;
+        }
+
+        #skip, .skip {
+            color: #D6BF55;
+        }
+
+        #fail, .fail {
+            color: #FF6B68;
+        }
+
     </style>
 </head>
 <body>
 <div>
-<img src="https://drive.google.com/uc?export=view&id=1l88SLdVvNgqtuIRAXHV7rNxQz_dq1YGU"/>
+    <img src="https://drive.google.com/uc?export=view&id=1l88SLdVvNgqtuIRAXHV7rNxQz_dq1YGU"/>
+    <hr>
+    <span id="test-title"></span>
+    <table>
+        <tr>
+            <td><span class="pass">&#10004;</span></td>
+            <td><span id="pass">0</span></td>
+        </tr>
+        <tr>
+            <td><span class="skip">&#9679;</span></td>
+            <td><span id="skip">0</span></td>
+        </tr>
+        <tr>
+            <td><span class="fail">&#10060;</span></td>
+            <td><span id="fail">0</span></td>
+        </tr>
+    </table>
+    </p>
 </div>
 <script type="text/javascript">
+    (function () {
+    var old = console.log;
+    var spanPass = document.getElementById('pass');
+    var spanSkip = document.getElementById('skip');
+    var spanFail = document.getElementById('fail');
+    var spanTitle = document.getElementById('test-title');
+    console.log = function () {
+      var doLog = false;
+      var pass = '';
+      var skip = '';
+      var fail = '';
+      var title = '';
+      for (var i = 0; i < arguments.length; i++) {
+        if (typeof arguments[i] == 'string') {
+            let text = arguments[i].replace(/.\[\d+m/gi, '');
+            let match = text.match(/\d+(?::\d+)(?:\s+\+(\d+))?(?:\s+~(\d+))?(?:\s+-(\d+))?\s*:(.+)/);
+            if (match) {
+                pass = match[1] ? match[1] : '0';
+                skip = match[2] ? match[2] : '0';
+                fail = match[3] ? match[3] : '0';
+                title = match[4] ? match[4] : '[no description]';
+                doLog = true;
+            }
+        }
+      }
+
+      if (doLog) {
+        spanPass.innerHTML = pass;
+        spanSkip.innerHTML = skip;
+        spanFail.innerHTML = fail;
+        spanTitle.innerHTML = title;
+      }
+
+      old(...arguments);
+    }
+})();
+
 </script>
 <script src="entrypoint.js"></script>
 </body>
