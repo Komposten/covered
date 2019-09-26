@@ -1,0 +1,6 @@
+node_modules
+obj
+bin
+.vs
+chrome-dependency-runner.njsproj
+chrome-dependency-runner.sln

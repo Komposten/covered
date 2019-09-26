@@ -1,0 +1,19 @@
+{
+  "name": "chrome-coverage-runner",
+  "version": "0.0.1",
+  "description": "Connects to a running Chrome instance and collects javascript coverage data",
+  "author": "Jakob Hjelm <komposten585@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "main": "chrome.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/komposten/covered.git"
+  },
+  "dependencies": {
+    "chrome-remote-interface": "^0.28.0"
+  }
+}
