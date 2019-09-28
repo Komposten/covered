@@ -66,7 +66,6 @@
         #fail, .fail {
             color: #FF6B68;
         }
-
     </style>
 </head>
 <body>
@@ -127,8 +126,20 @@
       old(...arguments);
     }
 })();
-
 </script>
-<script src="entrypoint.js"></script>
+<script src="./require.js"></script>
+<script type="text/javascript">
+    requirejs.config({
+        baseUrl: './',
+        paths: {
+            "entrypoint": "./entrypoint"
+        }
+    });
+
+    require(["entrypoint"],function(n){
+        console.log(n)
+        n.$46covered__internal__chrome_entrypoint.main();
+    });
+</script>
 </body>
 </html>

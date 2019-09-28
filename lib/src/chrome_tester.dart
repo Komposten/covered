@@ -20,9 +20,10 @@ class ChromeTester extends Tester {
 
   @override
   Future<File> runTestsAndCollect(File entrypoint, bool printTestOutput) async {
-    stdout.writeln('>> Running dart2js...');
+    stdout.writeln('>> Running dartdevc...');
     var jsFile = await _transpileToJS(entrypoint);
     var htmlFile = await _copyHtmlFile();
+    await _copyJsDependencies();
     await _runTests(htmlFile, jsFile, printTestOutput);
     return File(reportsDir);
   }
@@ -32,20 +33,22 @@ class ChromeTester extends Tester {
         path.join(internalDir, 'chrome', 'entrypoint.js'),
         from: projectDir));
     await outputFile.create(recursive: true);
-    final dart2jsArgs = [
+    final dartdevcArgs = [
       '--enable-asserts',
+      '--modules=amd',
       '--out=${outputFile.path}',
       path.relative(entrypoint.absolute.path, from: projectDir)
     ];
 
-    var processName = (Platform.isWindows ? 'dart2js.bat' : 'dart2js');
-    var process = await Process.start(processName, dart2jsArgs,
+    var processName = (Platform.isWindows ? 'dartdevc.bat' : 'dartdevc');
+    var process = await Process.start(processName, dartdevcArgs,
         workingDirectory: projectDir);
     process.stdout
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen((line) {
-      if (line != null && !line.contains(RegExp(r'Hint:|Dart file|<sdk>.+preambles'))) {
+      if (line != null &&
+          !line.contains(RegExp(r'Hint:|Dart file|<sdk>.+preambles'))) {
         stdout.writeln('>>>> $line');
       }
     });
@@ -71,6 +74,18 @@ class ChromeTester extends Tester {
     return target.writeAsString(await source.readAsString());
   }
 
+  Future<void> _copyJsDependencies() async {
+    var target = path.join(internalDir, 'chrome');
+    var sdkDir = Platform.environment['DART_SDK'];
+    var sdkFile =
+        File(path.join(sdkDir, 'lib', 'dev_compiler', 'amd', 'dart_sdk.js'));
+    var requireFile =
+        File(path.join(sdkDir, 'lib', 'dev_compiler', 'amd', 'require.js'));
+
+    await sdkFile.copy(path.join(target, 'dart_sdk.js'));
+    await requireFile.copy(path.join(target, 'require.js'));
+  }
+
   Future<void> _runTests(
       File htmlFile, File jsFile, bool printTestOutput) async {
     var htmlPath = htmlFile.absolute.path;
@@ -88,6 +103,18 @@ class ChromeTester extends Tester {
     await runNpm(nodeEntrypoint);
     stdout.writeln('>> Launching Chrome...');
     var chrome = await _launchChrome();
+    chrome.stdout
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+      stdout.writeln('C>>> $line');
+    });
+    chrome.stderr
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+      stderr.writeln('C>>> $line');
+    });
     stdout.writeln('>> Running tests...');
     var process = await Process.start('node', nodeArgs,
         workingDirectory: nodeEntrypoint.parent.path);
@@ -105,12 +132,10 @@ class ChromeTester extends Tester {
     });
 
     var exitCode = await process.exitCode;
-    chrome.kill(ProcessSignal.sigkill);
+    chrome.kill(ProcessSignal.sigterm);
     if (exitCode != 0) {
       throw 'node failed with exit code $exitCode';
     }
-
-    return await _copyHtmlFile();
   }
 
   Future<void> runNpm(File nodeEntrypoint) async {
@@ -156,13 +181,15 @@ class ChromeTester extends Tester {
       '--no-first-run',
       '--no-default-browser-check',
       '--disable-default-apps',
-      '--disable-translate'
+      '--disable-translate',
       //TODO(komposten): Add a command line option for the port
     ];
 
     //FIXME(komposten): Temporary hardcoded chrome path.
     return await Process.start(
-        r'C:\Program Files (x86)\Google\Chrome\Application\chrome', chromeArgs,
-        workingDirectory: projectDir);
+      r'C:\Program Files (x86)\Google\Chrome\Application\chrome',
+      chromeArgs,
+      workingDirectory: projectDir,
+    );
   }
 }
