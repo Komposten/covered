@@ -11,6 +11,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:covered/src/output.dart';
 import 'package:covered/src/tester.dart';
 import 'package:path/path.dart' as path;
 import 'package:resource/resource.dart';
@@ -19,12 +20,13 @@ class ChromeTester extends Tester {
   ChromeTester(String projectDir) : super(projectDir, 'chrome');
 
   @override
-  Future<File> runTestsAndCollect(File entrypoint, bool printTestOutput) async {
+  Future<File> runTestsAndCollect(
+      File entrypoint, Output testOutputLevel) async {
     stdout.writeln('>> Running dartdevc...');
     var jsFile = await _transpileToJS(entrypoint);
     var htmlFile = await _copyHtmlFile();
     await _copyJsDependencies();
-    await _runTests(htmlFile, jsFile, printTestOutput);
+    await _runTests(htmlFile, jsFile, testOutputLevel);
     return File(reportsDir);
   }
 
@@ -86,8 +88,7 @@ class ChromeTester extends Tester {
     await requireFile.copy(path.join(target, 'require.js'));
   }
 
-  Future<void> _runTests(
-      File htmlFile, File jsFile, bool printTestOutput) async {
+  Future<void> _runTests(File htmlFile, File jsFile, Output outputLevel) async {
     var htmlPath = htmlFile.absolute.path;
     var jsPath = jsFile.absolute.path;
     var nodeEntrypoint = await _copyNodeEntrypoint();
@@ -97,7 +98,7 @@ class ChromeTester extends Tester {
       '8787',
       path.context.toUri(htmlPath).toString(),
       path.context.toUri(jsPath).toString(),
-      printTestOutput.toString()
+      outputLevel.toString().substring(outputLevel.toString().indexOf('.') + 1)
     ];
     stdout.writeln('>> Running npm...');
     await runNpm(nodeEntrypoint);

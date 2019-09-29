@@ -12,22 +12,28 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:coverage/coverage.dart' as coverage;
+import 'package:covered/src/output.dart';
 import 'package:covered/src/tester.dart';
 import 'package:path/path.dart' as path;
 
 class VmTester extends Tester {
+  final RegExp testLinePattern =
+      RegExp(r'\d+(?::\d+)+(?:\s+[+-~]\d+)*\s*:(?:.+)');
+  final colourSequencePattern = RegExp(r'.\[\d+m', caseSensitive: true);
+
   VmTester(String projectDir) : super(projectDir, 'vm');
 
   @override
-  Future<File> runTestsAndCollect(File entrypoint, bool printTestOutput) async {
-    var coverageData = await _runTests(entrypoint, printTestOutput);
+  Future<File> runTestsAndCollect(
+      File entrypoint, Output testOutputLevel) async {
+    var coverageData = await _runTests(entrypoint, testOutputLevel);
     return await _compileCoverageReport(coverageData);
   }
 
   //This method is heavily inspired by the `test_coverage` package.
   //(https://pub.dev/packages/test_coverage)
   Future<Map<String, dynamic>> _runTests(
-      File entrypoint, bool printTestOutput) async {
+      File entrypoint, Output outputLevel) async {
     Process process = await _startTestRunner(entrypoint);
 
     var uriCompleter = Completer<Uri>();
@@ -44,9 +50,7 @@ class VmTester extends Tester {
         }
       }
 
-      if (printTestOutput) {
-        stdout.writeln('>> $line');
-      }
+      _printTestOutput(line, outputLevel);
     });
 
     var observatoryUri = await uriCompleter.future.catchError((e) {
@@ -99,6 +103,28 @@ class VmTester extends Tester {
     }
 
     return uri;
+  }
+
+  void _printTestOutput(String line, Output level) {
+    var line2 = line.replaceAll(colourSequencePattern, '');
+    switch (level) {
+      case Output.minimal:
+        if (testLinePattern.hasMatch(line2)) {
+          stdout.writeln('>> $line');
+        }
+        break;
+      case Output.short:
+        if (testLinePattern.hasMatch(line2) ||
+            line2.startsWith(RegExp(r'\s*(Skip|Expected|Actual):'))) {
+          stdout.writeln('>> $line');
+        }
+        break;
+      case Output.verbose:
+        stdout.writeln('>> $line');
+        break;
+      default:
+        break;
+    }
   }
 
   Future<File> _compileCoverageReport(Map<String, dynamic> coverageData) async {

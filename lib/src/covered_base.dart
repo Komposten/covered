@@ -8,7 +8,9 @@
  * of this project.
  */
 import 'dart:io';
+
 import 'package:covered/src/chrome_tester.dart';
+import 'package:covered/src/output.dart';
 import 'package:covered/src/test_parser.dart';
 import 'package:covered/src/tester.dart';
 import 'package:covered/src/testinfo.dart';
@@ -16,15 +18,15 @@ import 'package:covered/src/utilities.dart';
 import 'package:covered/src/vm_tester.dart';
 import 'package:path/path.dart' as path;
 
-Future<void> collectTestCoverage(
-    List<String> platforms, bool printTestOutput, List<String> testArgs) async {
+Future<void> collectTestCoverage(List<String> platforms, Output testOutputLevel,
+    List<String> testArgs) async {
   stdout.writeln('Searching for test files...');
   var tests = await _getTestFiles();
   stdout.writeln('>> ${tests.length} test files found!');
   await Future.forEach(platforms, (platform) async {
     stdout.writeln(
         '\nRunning tests and coverage analysis for platform \'$platform\'...');
-    await _testAndCollect(platform, testArgs, tests, printTestOutput);
+    await _testAndCollect(platform, testArgs, tests, testOutputLevel);
   });
 }
 
@@ -41,7 +43,7 @@ Future<List<TestInfo>> _getTestFiles() async {
 }
 
 Future<void> _testAndCollect(String platform, List<String> testArgs,
-    List<TestInfo> tests, bool printTestOutput) async {
+    List<TestInfo> tests, Output testOutputLevel) async {
   tests = tests
       .where((test) =>
           test.testOn.isEmpty || testOnPlatform(test.testOn, platform))
@@ -57,5 +59,5 @@ Future<void> _testAndCollect(String platform, List<String> testArgs,
     throw ArgumentError('Unsupported testing platform: $platform');
   }
 
-  await tester.testAndCollect(testArgs, tests, printTestOutput);
+  await tester.testAndCollect(testArgs, tests, testOutputLevel);
 }

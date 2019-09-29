@@ -9,6 +9,7 @@
  */
 import 'dart:io';
 
+import 'package:covered/src/output.dart';
 import 'package:covered/src/testinfo.dart';
 import 'package:path/path.dart' as path;
 
@@ -24,10 +25,10 @@ abstract class Tester {
 
   Tester(this.projectDir, this.platform);
 
-  Future<void> testAndCollect(
-      List<String> testArgs, List<TestInfo> tests, bool printTestOutput) async {
+  Future<void> testAndCollect(List<String> testArgs, List<TestInfo> tests,
+      Output testOutputLevel) async {
     var testFile = await _buildTestEntryPoint(tests);
-    var coverageFile = await runTestsAndCollect(testFile, printTestOutput);
+    var coverageFile = await runTestsAndCollect(testFile, testOutputLevel);
 
     stdout.writeln(
         '>> $platform coverage report written to ${coverageFile.path}');
@@ -54,5 +55,5 @@ abstract class Tester {
     return file;
   }
 
-  Future<File> runTestsAndCollect(File entrypoint, bool printTestOutput);
+  Future<File> runTestsAndCollect(File entrypoint, Output printTestOutput);
 }
