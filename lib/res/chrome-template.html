@@ -105,7 +105,7 @@
       for (var i = 0; i < arguments.length; i++) {
         if (typeof arguments[i] == 'string') {
             let text = arguments[i].replace(/.\[\d+m/gi, '');
-            let match = text.match(/\d+(?::\d+)(?:\s+\+(\d+))?(?:\s+~(\d+))?(?:\s+-(\d+))?\s*:(.+)/);
+            let match = text.match(/\d+(?::\d+)+(?:\s+\+(\d+))?(?:\s+~(\d+))?(?:\s+-(\d+))?\s*:(.+)/);
             if (match) {
                 pass = match[1] ? match[1] : '0';
                 skip = match[2] ? match[2] : '0';
@@ -136,8 +136,7 @@
         }
     });
 
-    require(["entrypoint"],function(n){
-        console.log(n)
+    require(["entrypoint"], function(n) {
         n.$46covered__internal__chrome_entrypoint.main();
     });
 </script>
