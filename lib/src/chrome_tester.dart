@@ -172,11 +172,9 @@ class ChromeTester extends Tester {
 
   Future<File> _copyNodeEntrypoint() async {
     Directory directory =
-        Directory(path.join(Directory.systemTemp.path, 'covered'));
-    var entryTarget =
-        File(path.join(Directory.systemTemp.path, 'covered', 'chrome.js'));
-    var packageTarget =
-        File(path.join(Directory.systemTemp.path, 'covered', 'package.json'));
+        Directory(path.join(internalDir, 'chrome', 'js_runner'));
+    var entryTarget = File(path.join(directory.path, 'chrome.js'));
+    var packageTarget = File(path.join(directory.path, 'package.json'));
     var entrySource = Resource('package:covered/js/chrome.js');
     var packageSource = Resource('package:covered/js/package.json');
 
