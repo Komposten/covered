@@ -44,11 +44,13 @@ abstract class Tester {
       return {'uri': uri.toString(), 'name': name};
     });
 
+    output.writeln('import \'package:test/test.dart\';');
     data.forEach(
-        (e) => output.write('import \'${e['uri']}\' as ${e['name']};\n'));
-    output.write('\nvoid main() {\n');
-    data.forEach((e) => output.write('\t${e['name']}.main();\n'));
-    output.write('}\n');
+        (e) => output.writeln('import \'${e['uri']}\' as ${e['name']};'));
+    output.writeln('\nvoid main() {');
+    data.forEach((e) => output
+        .writeln('\tgroup(\'${e['name']}\', () => ${e['name']}.main());'));
+    output.writeln('}');
 
     await file.create(recursive: true);
     await file.writeAsString(output.toString());
