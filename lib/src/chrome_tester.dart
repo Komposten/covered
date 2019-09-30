@@ -11,6 +11,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:covered/src/js/coverage.dart' as js_coverage;
 import 'package:covered/src/output.dart';
 import 'package:covered/src/tester.dart';
 import 'package:path/path.dart' as path;
@@ -26,8 +27,9 @@ class ChromeTester extends Tester {
     var jsFile = await _transpileToJS(entrypoint);
     var htmlFile = await _copyHtmlFile();
     await _copyJsDependencies();
-    await _runTests(htmlFile, jsFile, testOutputLevel);
-    return File(reportsDir);
+    var coverageData = await _runTests(htmlFile, jsFile, testOutputLevel);
+    return await _compileCoverageReport(
+        coverageData, entrypoint, File('${jsFile.path}.map'));
   }
 
   Future<File> _transpileToJS(File entrypoint) async {
@@ -88,7 +90,7 @@ class ChromeTester extends Tester {
     await requireFile.copy(path.join(target, 'require.js'));
   }
 
-  Future<void> _runTests(File htmlFile, File jsFile, Output outputLevel) async {
+  Future<File> _runTests(File htmlFile, File jsFile, Output outputLevel) async {
     var htmlPath = htmlFile.absolute.path;
     var jsPath = jsFile.absolute.path;
     var nodeEntrypoint = await _copyNodeEntrypoint();
@@ -103,6 +105,7 @@ class ChromeTester extends Tester {
     stdout.writeln('>> Running npm...');
     await runNpm(nodeEntrypoint);
     stdout.writeln('>> Launching Chrome...');
+    //TODO Abort if Chrome fails to start (e.g. if the port is in use).
     var chrome = await _launchChrome();
     chrome.stdout
         .transform(utf8.decoder)
@@ -137,6 +140,8 @@ class ChromeTester extends Tester {
     if (exitCode != 0) {
       handleNodeExitCode(exitCode);
     }
+
+    return File(path.join(internalDir, 'js_reports', 'chrome.json'));
   }
 
   void handleNodeExitCode(int exitCode) {
@@ -204,5 +209,16 @@ class ChromeTester extends Tester {
       chromeArgs,
       workingDirectory: projectDir,
     );
+  }
+
+  Future<File> _compileCoverageReport(
+      File coverageFile, File testEntrypoint, File jsSourceMap) async {
+    var lcov = await js_coverage.analyseJsCoverage(
+        coverageFile, testEntrypoint, jsSourceMap, projectDir);
+
+    print('>> $lcov');
+
+    var outputFile = File(path.join(reportsDir, 'lcov_chrome.info'));
+    return outputFile;
   }
 }
