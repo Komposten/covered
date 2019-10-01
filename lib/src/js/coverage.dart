@@ -56,10 +56,11 @@ Future<List<FunctionInfo>> _getRelevantFunctions(File jsEntrypoint,
   var functionList = <FunctionInfo>[];
   var functionCount = coverageData['functions'].length;
   var index = 0;
+  print('');
   coverageData['functions'].forEach((function) {
     if (index++ % 100 == 0) {
       stdout.write(
-          '\u001b[100D>>>> Progress: ${((index + 1) / functionCount * 100).toStringAsFixed(1)} %');
+          '\u001b[F>>>> Progress: ${((index + 1) / functionCount * 100).toStringAsFixed(1)} %\n');
     }
 
     var name = function['functionName'];
@@ -76,7 +77,7 @@ Future<List<FunctionInfo>> _getRelevantFunctions(File jsEntrypoint,
       }
     }
   });
-  print('');
+  stdout.write('\u001b[F>>>> Mapping complete!  \n');
 
   return functionList;
 }
