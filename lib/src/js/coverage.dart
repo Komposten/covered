@@ -152,12 +152,33 @@ int getFunctionStart(Map<String, dynamic> functionData) {
 
 Map<String, String> _findNamespace(
     int functionStart, String functionName, String jsEntrypoint) {
+  /*
+     Types of members 'function' may refer to:
+      Defined inside JS class bodies:
+       1) Methods:
+           Signature: `functionName(params) { ... }`.
+       2) Factory constructors and static methods:
+           Signature: `static functionName(params) { ... }`
+           `new` is used as functionName for factory constructors with the same
+           name as the class.
+
+      Defined outside JS class bodies:
+       3) Functions:
+           Signature: `namespace.functionName = function functionName(params) { ... }`
+           Note: The first instance of functionName will typically be the actual name
+           of the function in Dart, whereas the second instance may be slightly modified.
+           Examples of modified names:
+           * `namespace.function = function func` ('function' is truncated due to being reserved)
+           * `namespace.main = function main$1` ('$1' is appended to separate same-name functions).
+       4) Constructors:
+           Signature: `functionName = function(params) { ... }`
+           Here, functionName refers to the full `namespace.Class.constructorName`.
+           `new` is used as constructorName for constructors with the same
+           name as the class.
+   */
   /* TODO(komposten): Currently doesn't support top-level getters and setters!
       Should be easy enough since in the JS these are defined as:
        dart.copyProperties(namespace, { get functionName() ... });
-   */
-
-  /* TODO(komposten): What about factory constructors?
    */
   var escapedName = RegExp.escape(functionName);
   var patternNamespace = r'([^\s()-]+)\.';
@@ -195,13 +216,19 @@ int _findNamespaceRegionEnd(int functionStart, String coverageJson) {
 
   var afterStart = coverageJson.substring(functionStart);
   if (afterStart.startsWith('() ')) {
-    // If functionStart is followed by '= ' we know it's a built-in method or an
+    // If functionStart is followed by '() ' we know it's a built-in method or an
     // otherwise uninteresting definition.
     // These appear e.g. near the top of the JS file as 'let functionName = () => ...'
     return 0;
   } else if (afterStart.startsWith('function')) {
+    // If the function start is followed by 'function' and preceded by '= ' it is
+    // either a constructor or a top-level function. Both of these have the namespace
+    // region just before the function definition.
     return coverageJson.indexOf('(', functionStart);
   } else {
+    // If we get here we know we're dealing with a class method of some kind.
+    // Search backwards until we find the brace ('{') that marks the beginning
+    // of the class body.
     int braceDepth = 0;
     bool inString = false;
     String stringChar;
