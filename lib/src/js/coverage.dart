@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
@@ -267,23 +266,26 @@ bool _namespaceInFileList(
 }
 
 RangeList _buildRangeList(jsCoverage, List<FunctionInfo> functions) {
-  var functionId = (name, index) => '$name@$index';
-  Set<String> functionSet = HashSet.from(
-      functions.map((info) => functionId(info.name, info.startIndex)));
+  Function functionId = (name, index) => '$name@$index';
 
-  print('Valid functions: $functionSet');
+  Map<String, FunctionInfo> functionMap = {};
+  functions.forEach((function) =>
+      functionMap[functionId(function.name, function.startIndex)] = function);
+
+  print('Valid functions: ${functionMap.keys}');
 
   var rangeList = RangeList();
   jsCoverage['functions'].forEach((function) {
     var id = functionId(function['functionName'], getFunctionStart(function));
-    if (functionSet.contains(id)) {
+    if (functionMap.containsKey(id)) {
       print('Function ID valid: $id');
+      var functionInfo = functionMap[id];
       function['ranges'].forEach((range) {
         var start = range['startOffset'];
         var end = range['endOffset'];
         var isCovered = range['count'] != 0;
 
-        rangeList.add(Range(start, end, isCovered));
+        rangeList.add(Range(functionInfo, start, end, isCovered));
       });
     }
   });
@@ -292,9 +294,9 @@ RangeList _buildRangeList(jsCoverage, List<FunctionInfo> functions) {
 
 class FunctionInfo {
   final String name;
-  final String inClass;
+  final String className;
   final String namespace;
   final int startIndex;
 
-  FunctionInfo(this.name, this.inClass, this.namespace, this.startIndex);
+  FunctionInfo(this.name, this.className, this.namespace, this.startIndex);
 }

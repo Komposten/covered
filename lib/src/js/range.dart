@@ -1,11 +1,14 @@
 import 'dart:math';
 
+import 'package:covered/src/js/coverage.dart';
+
 class Range {
+  final FunctionInfo function;
   final int start;
   final int end;
   final bool covered;
 
-  Range(this.start, this.end, this.covered);
+  Range(this.function, this.start, this.end, this.covered);
 
   List<Range> resolveOverlap(Range other) {
     _assertOverlaps(other);
@@ -22,19 +25,26 @@ class Range {
       } else if (coveredRange._contains(uncoveredRange.start) &&
           coveredRange._contains(uncoveredRange.end)) {
         return [
-          Range(coveredRange.start, uncoveredRange.start - 1, true),
-          Range(uncoveredRange.start, uncoveredRange.end, false),
-          Range(uncoveredRange.end + 1, coveredRange.end, true)
+          Range(coveredRange.function, coveredRange.start,
+              uncoveredRange.start - 1, true),
+          Range(uncoveredRange.function, uncoveredRange.start,
+              uncoveredRange.end, false),
+          Range(coveredRange.function, uncoveredRange.end + 1, coveredRange.end,
+              true)
         ];
       } else if (uncoveredRange._contains(coveredRange.start)) {
         return [
-          Range(uncoveredRange.start, uncoveredRange.end, false),
-          Range(uncoveredRange.end + 1, coveredRange.end, true)
+          Range(uncoveredRange.function, uncoveredRange.start,
+              uncoveredRange.end, false),
+          Range(coveredRange.function, uncoveredRange.end + 1, coveredRange.end,
+              true)
         ];
       } else {
         return [
-          Range(coveredRange.start, uncoveredRange.start - 1, true),
-          Range(uncoveredRange.start, uncoveredRange.end, false)
+          Range(coveredRange.function, coveredRange.start,
+              uncoveredRange.start - 1, true),
+          Range(uncoveredRange.function, uncoveredRange.start,
+              uncoveredRange.end, false)
         ];
       }
     }
@@ -52,7 +62,8 @@ class Range {
   }
 
   Range _mergeWith(Range other) {
-    return Range(min(start, other.start), max(end, other.end), covered);
+    return Range(
+        function, min(start, other.start), max(end, other.end), covered);
   }
 
   void _assertOverlaps(Range other) {
