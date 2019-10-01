@@ -214,13 +214,14 @@ Map<String, String> _findNamespace(
 int _findNamespaceRegionEnd(int functionStart, String coverageJson) {
   var stringPattern = RegExp('"|\'|`');
 
+  var beforeStart = coverageJson.substring(0, functionStart);
   var afterStart = coverageJson.substring(functionStart);
   if (afterStart.startsWith('() ')) {
     // If functionStart is followed by '() ' we know it's a built-in method or an
     // otherwise uninteresting definition.
     // These appear e.g. near the top of the JS file as 'let functionName = () => ...'
     return 0;
-  } else if (afterStart.startsWith('function')) {
+  } else if (afterStart.startsWith('function') && beforeStart.endsWith('= ')) {
     // If the function start is followed by 'function' and preceded by '= ' it is
     // either a constructor or a top-level function. Both of these have the namespace
     // region just before the function definition.
