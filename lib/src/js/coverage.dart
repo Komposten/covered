@@ -161,38 +161,48 @@ Map<String, String> _findNamespace(
            Signature: `static functionName(params) { ... }`
            `new` is used as functionName for factory constructors with the same
            name as the class.
+       3) Getters and setters:
+           Signature: `functionName(params) { ... }`
+           Here, functionName includes a preceding `get` or `set`, e.g. `get name`.
+       All three types are handled in the same way since they essentially are defined
+       identically.
 
       Defined outside JS class bodies:
-       3) Functions:
+       4) Functions:
            Signature: `namespace.functionName = function functionName(params) { ... }`
            Note: The first instance of functionName will typically be the actual name
            of the function in Dart, whereas the second instance may be slightly modified.
            Examples of modified names:
            * `namespace.function = function func` ('function' is truncated due to being reserved)
            * `namespace.main = function main$1` ('$1' is appended to separate same-name functions).
-       4) Constructors:
+           Handled using `patternFunction`.
+       5) Constructors:
            Signature: `functionName = function(params) { ... }`
            Here, functionName refers to the full `namespace.Class.constructorName`.
            `new` is used as constructorName for constructors with the same
            name as the class.
-   */
-  /* TODO(komposten): Currently doesn't support top-level getters and setters!
-      Should be easy enough since in the JS these are defined as:
-       dart.copyProperties(namespace, { get functionName() ... });
+           Handled using `patternConstructor`.
+       6) Top-level getters and setters:
+           Signature: `dart.copyProperties(namespace, { functionName() ... });`
+           Like class getters and setters, functionName includes a preceding
+           `get` or `set`.
+           Handled using `patternGetSet`.
    */
   var escapedName = RegExp.escape(functionName);
-  var patternNamespace = r'([^\s()-]+)\.';
+  var patternNamespace = r'([^\s()-]+)';
   var patternClass = r'(?:([^\s()-]+) = class [^\s-]+ extends)';
   var patternFunction = '(?:[^\\s()-]+ = function $escapedName)';
   var patternConstructor = r'(?:([^\s().-]+)\.[^\\s-]+ = function)';
+  var patternGetSet = '(?:copyProperties\\($patternNamespace,)';
   /*
    * Capture groups:
-   * 1) namespace
+   * 1) namespace (from patternNamespace)
    * 2) class name (from patternClass)
    * 3) class name (from patternConstructor)
+   * 4) namespace (from patternGetSet)
    */
   var pattern = RegExp(
-      '$patternNamespace(?:$patternClass|$patternFunction|$patternConstructor)');
+      '(?:$patternNamespace\\.(?:$patternClass|$patternFunction|$patternConstructor))|$patternGetSet');
 
   var namespaceRegionEnd = _findNamespaceRegionEnd(functionStart, jsEntrypoint);
   var namespaceRegionStart =
@@ -203,7 +213,7 @@ Map<String, String> _findNamespace(
   if (matches.isNotEmpty) {
     var match = matches.last;
     return {
-      'namespace': match.group(1),
+      'namespace': match.group(1) ?? match.group(4),
       'class': match.group(2) ?? match.group(3)
     };
   } else {
