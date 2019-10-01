@@ -39,6 +39,10 @@ Future<void> main(List<String> arguments) async {
             'Include actual/expected for failed tests and the reason for skipped tests.',
         'verbose': 'Display full test output.'
       });
+  parser.addFlag('headless',
+      abbr: 'l',
+      help: 'If Chrome should be run in headless mode',
+      negatable: false);
   parser.addSeparator(
       'and testArgs are additional options passed to the test run.');
 
@@ -54,8 +58,8 @@ Future<void> main(List<String> arguments) async {
         ' on platforms ${argResults['platforms']}');
     var testOutput = Output.values
         .firstWhere((v) => v.toString().endsWith(argResults['test-output']));
-    await collectTestCoverage(
-        argResults['platforms'], testOutput, argResults.rest);
+    await collectTestCoverage(argResults['platforms'], testOutput,
+        argResults['headless'], argResults.rest);
     stdout.writeln('\nThe coverage analysis completed successfully!');
     stdout.writeln(
         'The coverage report(s) can be found in the ${path.join('.covered', 'reports')} directory.');

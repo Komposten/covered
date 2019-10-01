@@ -18,7 +18,9 @@ import 'package:path/path.dart' as path;
 import 'package:resource/resource.dart';
 
 class ChromeTester extends Tester {
-  ChromeTester(String projectDir) : super(projectDir, 'chrome');
+  final bool headless;
+
+  ChromeTester(String projectDir, this.headless) : super(projectDir, 'chrome');
 
   @override
   Future<File> runTestsAndCollect(
@@ -202,6 +204,10 @@ class ChromeTester extends Tester {
       '--disable-translate',
       //TODO(komposten): Add a command line option for the port
     ];
+
+    if (headless) {
+      chromeArgs.insert(1, '--headless');
+    }
 
     //FIXME(komposten): Temporary hardcoded chrome path.
     return await Process.start(
