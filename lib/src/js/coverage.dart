@@ -152,30 +152,26 @@ int getFunctionStart(Map<String, dynamic> functionData) {
 
 Map<String, String> _findNamespace(
     int functionStart, String functionName, String jsEntrypoint) {
-  /* TODO(komposten): Relevant notes on entrypoint.js:
-      dart.trackLibraries -> maps library/file uri to JS namespace.
-      dart.setLibraryUri -> maps JS namespace.class to library/file uri.
-                            only applies to classes and not top-level functions
-   */
-
   /* TODO(komposten): Currently doesn't support top-level getters and setters!
       Should be easy enough since in the JS these are defined as:
        dart.copyProperties(namespace, { get functionName() ... });
    */
-  /* TODO(komposten): Currently doesn't support constructors!
-      These appear as `(functionName = function(...) { /*code*/ })`
-       where 'functionName' is 'namespace.Class.new'.
-      This cannot use the same class-matching as for normal methods, since it's
-       defined outside of the `namespace.class = Class extends ... {}` block!
-      .
-      NOTE: Must also check how named constructors (e.g. ClassName.fromString)
-       and factory constructors get translated to JS!
+
+  /* TODO(komposten): What about factory constructors?
    */
   var escapedName = RegExp.escape(functionName);
-  var patternClass = r'(?:([^\s-]+) = class [^\s-]+ extends)';
-  var patternFunction = '(?:[^\\s-]+ = function $escapedName)';
-  var pattern =
-      RegExp(r'([^\s]+)\.(?:' + patternClass + '|' + patternFunction + ')');
+  var patternNamespace = r'([^\s()-]+)\.';
+  var patternClass = r'(?:([^\s()-]+) = class [^\s-]+ extends)';
+  var patternFunction = '(?:[^\\s()-]+ = function $escapedName)';
+  var patternConstructor = r'(?:([^\s().-]+)\.[^\\s-]+ = function)';
+  /*
+   * Capture groups:
+   * 1) namespace
+   * 2) class name (from patternClass)
+   * 3) class name (from patternConstructor)
+   */
+  var pattern = RegExp(
+      '$patternNamespace(?:$patternClass|$patternFunction|$patternConstructor)');
 
   var namespaceRegionEnd = _findNamespaceRegionEnd(functionStart, jsEntrypoint);
   var namespaceRegionStart =
@@ -185,7 +181,10 @@ Map<String, String> _findNamespace(
 
   if (matches.isNotEmpty) {
     var match = matches.last;
-    return {'namespace': match.group(1), 'class': match.group(2)};
+    return {
+      'namespace': match.group(1),
+      'class': match.group(2) ?? match.group(3)
+    };
   } else {
     return null;
   }
