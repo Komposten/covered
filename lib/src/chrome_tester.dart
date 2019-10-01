@@ -29,7 +29,7 @@ class ChromeTester extends Tester {
     await _copyJsDependencies();
     var coverageData = await _runTests(htmlFile, jsFile, testOutputLevel);
     return await _compileCoverageReport(
-        coverageData, entrypoint, File('${jsFile.path}.map'));
+        coverageData, jsFile, File('${jsFile.path}.map'));
   }
 
   Future<File> _transpileToJS(File entrypoint) async {
@@ -105,7 +105,7 @@ class ChromeTester extends Tester {
     stdout.writeln('>> Running npm...');
     await runNpm(nodeEntrypoint);
     stdout.writeln('>> Launching Chrome...');
-    //TODO Abort if Chrome fails to start (e.g. if the port is in use).
+    //TODO(komposten): Abort if Chrome fails to start (e.g. if the port is in use).
     var chrome = await _launchChrome();
     chrome.stdout
         .transform(utf8.decoder)
@@ -212,9 +212,10 @@ class ChromeTester extends Tester {
   }
 
   Future<File> _compileCoverageReport(
-      File coverageFile, File testEntrypoint, File jsSourceMap) async {
+      File coverageFile, File jsEntrypoint, File jsSourceMap) async {
+    stdout.writeln('>> Compiling coverage report...');
     var lcov = await js_coverage.analyseJsCoverage(
-        coverageFile, testEntrypoint, jsSourceMap, projectDir);
+        coverageFile, jsEntrypoint, jsSourceMap, projectDir);
 
     print('>> $lcov');
 
