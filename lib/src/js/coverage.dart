@@ -190,10 +190,10 @@ Map<String, String> _findNamespace(
    */
   var escapedName = RegExp.escape(functionName);
   var patternNamespace = r'([^\s()-]+)';
-  var patternClass = r'(?:([^\s()-]+) = class [^\s-]+ extends)';
-  var patternFunction = '(?:[^\\s()-]+ = function $escapedName)';
-  var patternConstructor = r'(?:([^\s().-]+)\.[^\\s-]+ = function)';
-  var patternGetSet = '(?:copyProperties\\($patternNamespace,)';
+  var patternClass = r'([^\s()-]+) = class [^\s-]+ extends';
+  var patternFunction = '[^\\s()-]+ = function $escapedName';
+  var patternConstructor = r'([^\s().-]+)\.[^\\s-]+ = function';
+  var patternGetSet = 'copyProperties\\($patternNamespace,';
   /*
    * Capture groups:
    * 1) namespace (from patternNamespace)
@@ -202,7 +202,7 @@ Map<String, String> _findNamespace(
    * 4) namespace (from patternGetSet)
    */
   var pattern = RegExp(
-      '(?:$patternNamespace\\.(?:$patternClass|$patternFunction|$patternConstructor))|$patternGetSet');
+      '$patternNamespace\\.(?:$patternClass|$patternFunction|$patternConstructor)|$patternGetSet');
 
   var namespaceRegionEnd = _findNamespaceRegionEnd(functionStart, jsEntrypoint);
   var namespaceRegionStart =
