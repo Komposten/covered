@@ -28,7 +28,7 @@ Future<void> main(List<String> arguments) async {
       valueHelp: 'PLATFORMS');
   parser.addOption('test-output',
       abbr: 't',
-      defaultsTo: 'none',
+      defaultsTo: 'minimal',
       allowed: ['none', 'minimal', 'short', 'verbose'],
       help: 'How much of the test result output that should be displayed.',
       valueHelp: 'LEVEL',
