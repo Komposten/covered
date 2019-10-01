@@ -26,7 +26,9 @@ class VmTester extends Tester {
   @override
   Future<File> runTestsAndCollect(
       File entrypoint, Output testOutputLevel) async {
+    stdout.writeln('>> Running tests...');
     var coverageData = await _runTests(entrypoint, testOutputLevel);
+    stdout.writeln('>> Compiling coverage report...');
     return await _compileCoverageReport(coverageData);
   }
 

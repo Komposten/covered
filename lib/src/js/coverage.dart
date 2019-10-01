@@ -59,8 +59,8 @@ Future<List<FunctionInfo>> _getRelevantFunctions(File jsEntrypoint,
   var index = 0;
   coverageData['functions'].forEach((function) {
     if (index++ % 100 == 0) {
-      print(
-          '>>>> Progress: ${((index + 1) / functionCount * 100).toStringAsFixed(1)} %');
+      stdout.write(
+          '\u001b[100D>>>> Progress: ${((index + 1) / functionCount * 100).toStringAsFixed(1)} %');
     }
 
     var name = function['functionName'];
@@ -77,6 +77,7 @@ Future<List<FunctionInfo>> _getRelevantFunctions(File jsEntrypoint,
       }
     }
   });
+  print('');
 
   return functionList;
 }
