@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:covered/src/js/linked_mapping.dart';
 import 'package:covered/src/js/range.dart';
 import 'package:covered/src/js/range_list.dart';
+import 'package:covered/src/js/utilities.dart';
 import 'package:path/path.dart' as path;
 
 /*TODO(komposten): Rewrite this as a class so some function parameters can be
@@ -63,27 +64,18 @@ Future<List<MappedRange>> _mapRangesToDart(
   var mapping =
       LinkedMapping(await jsSourceMap.readAsString(), jsSourceMap.uri);
   List<MappedRange> result = [];
+  var offsetConverter = OffsetToLineConverter(entrypointRaw);
 
   var index = 0;
-  var lastRangeEnd = 0;
-  var lastLineEnd = 0;
   for (var range in rangeList.list) {
     _printProgress(
         index++, 100, rangeList.list.length, 'Mapping JS coverage to Dart');
 
-    //If the current range is within the last one, we have to reset the search positions.
-    if (lastRangeEnd > range.start) {
-      lastRangeEnd = 0;
-      lastLineEnd = 0;
-    }
-
     //Convert the range start and end offsets to line-column pairs.
-    var startLine =
-        _countNewlines(lastRangeEnd, range.start, entrypointRaw) + lastLineEnd;
-    var endLine =
-        _countNewlines(range.start, range.end, entrypointRaw) + startLine;
-    var startCol = _getColumn(range.start, entrypointRaw);
-    var endCol = _getColumn(range.start, entrypointRaw);
+    var startLine = offsetConverter.getLine(range.start);
+    var endLine = offsetConverter.getLine(range.end);
+    var startCol = offsetConverter.getColumn(range.start);
+    var endCol = offsetConverter.getColumn(range.end);
 
     var startPosition = mapping.entryFor(startLine, startCol);
     var endPosition = mapping.entryFor(endLine, endCol);
@@ -91,7 +83,13 @@ Future<List<MappedRange>> _mapRangesToDart(
     if (endPosition != null) {
       if (startPosition == null) {
         startPosition = mapping.lines.first.entries.first;
+      } else if (startPosition.next != null && startPosition != endPosition) {
+        startPosition = startPosition.next;
       }
+      /* FIXME(komposten): Temp4's someValue and otherValue are still marked as covered.
+          Is this because the true "not covered" coverage is missed, or because
+          of the merging of line data (see FileCoverage)?
+       */
 
       while (startPosition.sourceUrl != endPosition.sourceUrl) {
         startPosition = startPosition.next;
@@ -107,9 +105,6 @@ Future<List<MappedRange>> _mapRangesToDart(
 
       result.add(mappedRange);
     }
-
-    lastLineEnd = endLine;
-    lastRangeEnd = range.end;
   }
 
   _printProgress(rangeList.list.length, 100, rangeList.list.length,
@@ -126,20 +121,6 @@ void _printProgress(int index, int interval, int count, String text) {
   } else if (index % interval == 0) {
     stdout.write(
         '\u001b[F>>>> $text: ${((index + 1) / count * 100).toStringAsFixed(1)} %\n');
-  }
-}
-
-int _countNewlines(int start, int end, String string) {
-  return RegExp(r'\r\n?|\n\r?').allMatches(string.substring(start, end)).length;
-}
-
-int _getColumn(int start, String entrypointRaw) {
-  var newlineIndex = entrypointRaw.lastIndexOf(RegExp(r'\r\n?|\n\r?'), start);
-
-  if (newlineIndex == -1) {
-    return start;
-  } else {
-    return start - newlineIndex - 1;
   }
 }
 

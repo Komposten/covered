@@ -2,72 +2,68 @@ import 'package:covered/src/js/utilities.dart';
 import 'package:test/test.dart';
 
 main() {
-  group('base64Decode_', () {
-    test('allValidChars_decode', () {
-      var actual = base64Decode(base64_alphabet);
-      var expected = <int>[];
-      for (int i = 0; i < 64; i++) {
-        expected.add(i);
-      }
+  group('OffsetToLineConverter_', () {
+    String text;
+    OffsetToLineConverter converter;
 
-      expect(actual, containsAllInOrder(expected));
+    setUpAll(() {
+      text = 'Line: A prequel\nLine 1\nLine: The second\n\nLine: Beyond';
+      converter = OffsetToLineConverter(text);
     });
 
-    test('invalidInput_throwArgumentError', () {
-      expect(() => base64Decode('!'), throwsArgumentError);
-    });
-  });
+    group('getLine_', () {
+      test('negativeOffset_throwArgumentError', () {
+        expect(() => converter.getLine(-1), throwsArgumentError);
+      });
 
-  group('vlqDecode_', () {
-    test('singleSextet', () {
-      expect(vlqDecode([30]), [15],
-          reason: '011110 (30) should decode to positive 1111 (15)');
-      expect(vlqDecode([31]), [-15],
-          reason: '011111 (30) should decode to negative 1111 (-15)');
-      expect(vlqDecode([22]), [11],
-          reason: '010110 (22) should decode to positive 1011 (11)');
-      expect(vlqDecode([23]), [-11],
-          reason: '010111 (23) should decode to negative 1011 (-11)');
-    });
+      test('offsetAfterTextEnd_throwArgumentError', () {
+        expect(() => converter.getLine(text.length+1), throwsArgumentError);
+      });
 
-    test('singleOctet_ignoreFirstTwoBits', () {
-      expect(vlqDecode([214]), [11],
-          reason: '11010110 (214) should decode to positive 1011 (11)');
-    });
+      test('increasingOffsets', () {
+        expect(converter.getLine(0), 0);
+        expect(converter.getLine(10), 0);
+        expect(converter.getLine(18), 1);
+        expect(converter.getLine(49), 4);
+      });
 
-    test('lastHasContinuationBitSet_throwArgumentError', () {
-      expect(() => vlqDecode([32]), throwsArgumentError);
-    });
+      test('decreasingOffsets', () {
+        expect(converter.getLine(49), 4);
+        expect(converter.getLine(18), 1);
+        expect(converter.getLine(10), 0);
+        expect(converter.getLine(0), 0);
+      });
 
-    test('multipleSeparateSextets', () {
-      expect(vlqDecode([30, 31, 22, 23]), [15, -15, 11, -11]);
-    });
-
-    test('multipleContinuedSextets', () {
-      expect(vlqDecode([32, 44, 9]), [4800]);
-      expect(vlqDecode([33, 44, 9]), [-4800]);
+      test('alternatingOffsets', () {
+        expect(converter.getLine(0), 0);
+        expect(converter.getLine(18), 1);
+        expect(converter.getLine(49), 4);
+        expect(converter.getLine(10), 0);
+      });
     });
 
-    test('multipleContinuedSeparateSextets', () {
-      expect(vlqDecode([32, 44, 9, 33, 44, 9]), [4800, -4800]);
+    group('getColumn_', () {
+      test('negativeOffset_throwArgumentError', () {
+        expect(() => converter.getLine(-1), throwsArgumentError);
+      });
+
+      test('offsetAfterTextEnd_throwArgumentError', () {
+        expect(() => converter.getLine(text.length+1), throwsArgumentError);
+      });
+
+      test('offsetOnFirstLine', () {
+        expect(converter.getColumn(0), 0);
+        expect(converter.getColumn(5), 5);
+        expect(converter.getColumn(8), 8);
+      });
+
+      test('offsetOnOtherLines', () {
+        expect(converter.getColumn(15), 15); //15 is a newline character
+        expect(converter.getColumn(16), 0); //16 is right after a newline character
+        expect(converter.getColumn(28), 5);
+        expect(converter.getColumn(49), 8);
+        expect(converter.getColumn(text.length), 12);
+      });
     });
-
-    test('tooManyContinuedSextets', () {
-      var _11sequences = [62, 63, 63, 63, 63, 63, 63, 63, 63, 63, 31];
-      var _11sequences3Bits = [62, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 7];
-      var _11sequences4Bits = [62, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 15];
-      var _12sequences = [62, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 31];
-
-      expect(vlqDecode(_11sequences), [18014398509481983]);
-      expect(vlqDecode(_11sequences3Bits), [144115188075855871]);
-      expect(() => vlqDecode(_11sequences4Bits), throwsArgumentError);
-      expect(() => vlqDecode(_12sequences), throwsArgumentError);
-    });
-  });
-
-  test('temp', () {
-    var vlqs = base64Decode('AAOCmBAAKCAAC0BAA0BcAAMAAAuBiCAAI');
-    var ints = vlqDecode(vlqs);
-    print(ints);
   });
 }

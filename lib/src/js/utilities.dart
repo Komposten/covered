@@ -1,62 +1,50 @@
-const base64_alphabet =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-const continuation_bit = 0x20;
+class OffsetToLineConverter {
+  final String _text;
+  int lastLineEnd = 0;
+  int lastOffset = 0;
 
-List<int> base64Decode(String input) {
-  List<int> list = [];
+  OffsetToLineConverter(this._text);
 
-  for (var i = 0; i < input.length; i++) {
-    var decoded = base64_alphabet.indexOf(input[i]);
-    if (decoded == -1) {
-      throw ArgumentError(
-          '[input] may only contain characters from the set [A-Za-z0-9+/]!');
+  int getLine(int offset) {
+    _validateOffset(offset);
+
+    if (lastOffset > offset) {
+      lastOffset = 0;
+      lastLineEnd = 0;
     }
 
-    list.add(decoded);
+    var line = RegExp(r'\r\n?|\n\r?')
+        .allMatches(_text.substring(lastOffset, offset))
+        .length + lastLineEnd;
+
+    lastLineEnd = line;
+    lastOffset = offset;
+
+    return line;
   }
 
-  return list;
-}
+  int getColumn(int offset) {
+    _validateOffset(offset);
 
-List<int> vlqDecode(List<int> sextets) {
-  if (sextets.last & continuation_bit != 0) {
-    throw ArgumentError(
-        '[sextets] ends with an incomplete VLQ (continuation bit is set)!');
-  }
+    if (offset == 0) {
+      return offset;
+    }
 
-  List<int> list = [];
-  int current;
-  int sequence = 0;
+    var newlineIndex = _text.lastIndexOf(RegExp(r'\r\n?|\n\r?'), offset-1);
 
-  for (var sextet in sextets) {
-    _checkWithinIntBounds(sequence, sextet);
-
-    var leastSignificantBits = sextet & 0x1F; //1F = 011111
-    if (sequence == 0) {
-      //Start of a sequence, so just set current to the LSBs.
-      current = leastSignificantBits;
+    if (newlineIndex == -1) {
+      return offset;
     } else {
-      //Continuation of a sequence, so we prepend the LSBs to the value
-      //by first left-shifting them.
-      current = current | (leastSignificantBits << (sequence * 5));
-    }
-
-    if (sextet & continuation_bit != 0) {
-      sequence++;
-    } else {
-      var sign = (current & 1 == 0 ? 1 : -1);
-      current = (current >> 1); //Remove the sign bit.
-      list.add(sign * current);
-      sequence = 0;
+      return offset - newlineIndex - 1;
     }
   }
 
-  return list;
-}
-
-void _checkWithinIntBounds(int sequenceCount, int sextet) {
-  if ((sequenceCount == 11 && (sextet & 0x38 != 0)) || sequenceCount > 11) {
-    throw ArgumentError(
-        'Decoded values larger than 2^63 (= 11 sequences + 3 bits) are not supported!');
+  void _validateOffset(int offset) {
+    if (offset < 0) {
+      throw ArgumentError('[offset] cannot be negative: $offset < 0');
+    }
+    if (offset > _text.length) {
+      throw ArgumentError('[offset] cannot be after the end of the text: $offset > ${_text.length}');
+    }
   }
 }
