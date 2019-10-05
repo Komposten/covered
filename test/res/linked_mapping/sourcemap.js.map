@@ -1,0 +1,8 @@
+{
+	"version": 3,
+	"file": "script.js",
+	"sourceRoot": "",
+	"sources": ["source1.dart", "source2.dart"],
+	"names": [],
+	"mappings": ";gCACuA,oBAAQ;QACiC;0BAE3C,IAAa,uBAAW,uBACf,aAAc;;;;YCFV,SAA+B,2BAAM"
+}

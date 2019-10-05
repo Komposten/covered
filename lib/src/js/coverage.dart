@@ -1,6 +1,8 @@
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:covered/src/js/linked_mapping.dart';
 import 'package:covered/src/js/range.dart';
 import 'package:covered/src/js/range_list.dart';
 import 'package:path/path.dart' as path;
@@ -11,323 +13,179 @@ import 'package:path/path.dart' as path;
 Future<String> analyseJsCoverage(File coverageFile, File jsEntrypoint,
     File jsSourceMap, String projectRoot) async {
   var jsCoverage = json.decode(await coverageFile.readAsString());
-  var functions = await _getRelevantFunctions(
-      jsEntrypoint, jsSourceMap, projectRoot, jsCoverage);
+  RangeList rangeList = _buildRangeList(jsCoverage);
+  List<MappedRange> mappedList =
+      await _mapRangesToDart(rangeList, jsEntrypoint, jsSourceMap);
+  _filterMappedList(mappedList, projectRoot);
 
-  RangeList rangeList = _buildRangeList(jsCoverage, functions);
-
-  var covered = 0;
-  var total = 0;
-  //TODO(komposten): Temporary output
-  var file = File('$projectRoot/.covered/internal/js_reports/ranges.txt');
-  var sink = file.openWrite();
-  for (var range in rangeList.list) {
-    if (range.covered) {
-      covered += range.end - range.start;
-    }
-    total += range.end - range.start;
-
-    if (range.covered) {
-      sink.writeln('[covered]   ${range.start}>${range.end}');
-    } else {
-      sink.writeln('[uncovered] ${range.start}>${range.end}');
-    }
-  }
-  await sink.close();
-
-  return 'Coverage: ${covered}/${total} (${(covered / total * 100).toStringAsFixed(1)} %)';
+  return _toLcov(mappedList);
 }
 
-Future<List<FunctionInfo>> _getRelevantFunctions(File jsEntrypoint,
-    File jsSourceMap, String projectRoot, dynamic coverageData) async {
-  print('>>>> Finding relevant source files...');
-  var files = await _getRelevantFiles(jsSourceMap, projectRoot);
-  var jsEntrypointRaw = await jsEntrypoint.readAsString();
-
-  print('>>>> Mapping JS functions...');
-  var nsToLibMap = _loadNamespaceToLibraryMap(jsEntrypointRaw);
-  if (nsToLibMap == null) {
-    throw 'Couldn\'t load namespace map from JS entrypoint file!';
-  }
-
-  await File('.covered/internal/nsToLib.txt')
-      .writeAsString(nsToLibMap.toString());
-
-  var functionList = <FunctionInfo>[];
-  var functionCount = coverageData['functions'].length;
+RangeList _buildRangeList(jsCoverage) {
+  var rangeList = RangeList();
+  var functionCount = jsCoverage['functions'].length;
   var index = 0;
-  print('');
-  coverageData['functions'].forEach((function) {
-    if (index++ % 100 == 0) {
-      stdout.write(
-          '\u001b[F>>>> Progress: ${((index + 1) / functionCount * 100).toStringAsFixed(1)} %\n');
-    }
+  Set<String> functionNames = {};
 
-    var name = function['functionName'];
-    if (name.toString().isNotEmpty) {
-      var definitionStart = getFunctionStart(function);
+  jsCoverage['functions'].forEach((function) {
+    _printProgress(index++, 100, functionCount, 'Compiling covered ranges');
+    var functionName = function['functionName'];
+    functionName = _getUniqueName(functionName, functionNames);
 
-      var namespace = _findNamespace(definitionStart, name, jsEntrypointRaw);
+    function['ranges'].forEach((range) {
+      var start = range['startOffset'];
+      var end = range['endOffset'];
+      var isCovered = range['count'] != 0;
 
-      if (namespace != null) {
-        if (_namespaceInFileList(namespace['namespace'], files, nsToLibMap)) {
-          functionList.add(FunctionInfo(name, namespace['class'],
-              namespace['namespace'], definitionStart));
-        }
-      }
-    }
+      rangeList.add(Range(functionName, start, end, isCovered));
+    });
   });
-  stdout.write('\u001b[F>>>> Mapping complete!  \n');
 
-  return functionList;
+  _printProgress(functionCount, 100, functionCount, 'Compiling covered ranges');
+  return rangeList;
 }
 
-Future<List<File>> _getRelevantFiles(
-    File jsSourceMap, String projectRoot) async {
-  var sources = json.decode(await jsSourceMap.readAsString())['sources'];
-  var result = <File>[];
-  for (var source in sources) {
-    source = path.join('.covered', 'internal', 'chrome', source);
-    source = path.normalize(source);
-    if (path.isWithin(projectRoot, source) && !source.contains('.covered')) {
-      result.add(File(source));
-    }
+String _getUniqueName(String name, Set<String> existingNames) {
+  var newName = name;
+  var i = 0;
+  while (existingNames.contains(newName)) {
+    newName = name + '\$$i';
+    i++;
   }
+
+  existingNames.add(newName);
+  return newName;
+}
+
+Future<List<MappedRange>> _mapRangesToDart(
+    RangeList rangeList, File jsEntrypoint, File jsSourceMap) async {
+  var entrypointRaw = await jsEntrypoint.readAsString();
+  var mapping =
+      LinkedMapping(await jsSourceMap.readAsString(), jsSourceMap.uri);
+  List<MappedRange> result = [];
+
+  var index = 0;
+  var lastRangeEnd = 0;
+  var lastLineEnd = 0;
+  for (var range in rangeList.list) {
+    _printProgress(
+        index++, 100, rangeList.list.length, 'Mapping JS coverage to Dart');
+
+    //If the current range is within the last one, we have to reset the search positions.
+    if (lastRangeEnd > range.start) {
+      lastRangeEnd = 0;
+      lastLineEnd = 0;
+    }
+
+    //Convert the range start and end offsets to line-column pairs.
+    var startLine =
+        _countNewlines(lastRangeEnd, range.start, entrypointRaw) + lastLineEnd;
+    var endLine =
+        _countNewlines(range.start, range.end, entrypointRaw) + startLine;
+    var startCol = _getColumn(range.start, entrypointRaw);
+    var endCol = _getColumn(range.start, entrypointRaw);
+
+    var startPosition = mapping.entryFor(startLine, startCol);
+    var endPosition = mapping.entryFor(endLine, endCol);
+
+    if (endPosition != null) {
+      if (startPosition == null) {
+        startPosition = mapping.lines.first.entries.first;
+      }
+
+      while (startPosition.sourceUrl != endPosition.sourceUrl) {
+        startPosition = startPosition.next;
+      }
+
+      var mappedRange = MappedRange(
+          range,
+          startPosition.sourceUrl,
+          startPosition.sourceLine,
+          startPosition.sourceColumn,
+          endPosition.sourceLine,
+          endPosition.sourceColumn);
+
+      result.add(mappedRange);
+    }
+
+    lastLineEnd = endLine;
+    lastRangeEnd = range.end;
+  }
+
+  _printProgress(rangeList.list.length, 100, rangeList.list.length,
+      'Mapping JS coverage to Dart');
 
   return result;
 }
 
-Map<String, String> _loadNamespaceToLibraryMap(String jsEntrypoint) {
-  var startIndex = jsEntrypoint.indexOf('dart.trackLibraries("entrypoint", {');
-
-  if (startIndex != -1) {
-    startIndex += 35;
-    var endIndex = jsEntrypoint.indexOf('}, {', startIndex);
-    var mappings = jsEntrypoint.substring(startIndex, endIndex).split('\n');
-    var result = <String, String>{};
-
-    mappings.forEach((mapping) {
-      var colonIndex = mapping.lastIndexOf(':');
-
-      if (colonIndex != -1) {
-        var library = mapping.substring(0, colonIndex).trim();
-        var namespace = mapping.substring(colonIndex + 1).trim();
-
-        library = _unescape(library.substring(1, library.length - 1));
-        if (namespace.endsWith(',')) {
-          namespace = namespace.substring(0, namespace.length - 1);
-        }
-
-        result[namespace] = library;
-      }
-    });
-
-    return result;
+void _printProgress(int index, int interval, int count, String text) {
+  if (index == 0) {
+    print('');
+  } else if (index == count) {
+    stdout.write('\u001b[F>>>> $text: Complete!\n');
+  } else if (index % interval == 0) {
+    stdout.write(
+        '\u001b[F>>>> $text: ${((index + 1) / count * 100).toStringAsFixed(1)} %\n');
   }
-
-  return null;
 }
 
-String _unescape(String string) {
-  for (int i = 0; i < string.length - 1; i++) {
-    if (string[i] == r'\' && string[i + 1] == r'\') {
-      string = string.substring(0, i) + string.substring(i + 1);
-    }
-  }
-
-  return string;
+int _countNewlines(int start, int end, String string) {
+  return RegExp(r'\r\n?|\n\r?').allMatches(string.substring(start, end)).length;
 }
 
-int getFunctionStart(Map<String, dynamic> functionData) {
-  int lowest;
+int _getColumn(int start, String entrypointRaw) {
+  var newlineIndex = entrypointRaw.lastIndexOf(RegExp(r'\r\n?|\n\r?'), start);
 
-  functionData['ranges'].forEach((range) {
-    if (lowest == null || range['startOffset'] < lowest) {
-      lowest = range['startOffset'];
-    }
+  if (newlineIndex == -1) {
+    return start;
+  } else {
+    return start - newlineIndex - 1;
+  }
+}
+
+void _filterMappedList(List<MappedRange> mappedList, String projectRoot) {
+  mappedList.removeWhere((range) {
+    var dartFile = path.normalize(range.dartFile);
+    var isProjectFile = (path.isWithin(projectRoot, dartFile) &&
+        !dartFile.contains('.covered'));
+    return !isProjectFile;
   });
-
-  return lowest;
 }
 
-Map<String, String> _findNamespace(
-    int functionStart, String functionName, String jsEntrypoint) {
-  /*
-     Types of members 'function' may refer to:
-      Defined inside JS class bodies:
-       1) Methods:
-           Signature: `functionName(params) { ... }`.
-       2) Factory constructors and static methods:
-           Signature: `static functionName(params) { ... }`
-           `new` is used as functionName for factory constructors with the same
-           name as the class.
-       3) Getters and setters:
-           Signature: `functionName(params) { ... }`
-           Here, functionName includes a preceding `get` or `set`, e.g. `get name`.
-       All three types are handled in the same way since they essentially are defined
-       identically.
+String _toLcov(List<MappedRange> mappedList) {
+  Map<String, FileCoverage> fileCoverages = {};
 
-      Defined outside JS class bodies:
-       4) Functions:
-           Signature: `namespace.functionName = function functionName(params) { ... }`
-           Note: The first instance of functionName will typically be the actual name
-           of the function in Dart, whereas the second instance may be slightly modified.
-           Examples of modified names:
-           * `namespace.function = function func` ('function' is truncated due to being reserved)
-           * `namespace.main = function main$1` ('$1' is appended to separate same-name functions).
-           Handled using `patternFunction`.
-       5) Constructors:
-           Signature: `functionName = function(params) { ... }`
-           Here, functionName refers to the full `namespace.Class.constructorName`.
-           `new` is used as constructorName for constructors with the same
-           name as the class.
-           Handled using `patternConstructor`.
-       6) Top-level getters and setters:
-           Signature: `dart.copyProperties(namespace, { functionName() ... });`
-           Like class getters and setters, functionName includes a preceding
-           `get` or `set`.
-           Handled using `patternGetSet`.
-   */
-  var escapedName = RegExp.escape(functionName);
-  var patternNamespace = r'([^\s()-]+)';
-  var patternClass = r'([^\s()-]+) = class [^\s-]+ extends';
-  var patternFunction = '[^\\s()-]+ = function $escapedName';
-  var patternConstructor = r'([^\s().-]+)\.[^\\s-]+ = function';
-  var patternGetSet = 'copyProperties\\($patternNamespace,';
-  /*
-   * Capture groups:
-   * 1) namespace (from patternNamespace)
-   * 2) class name (from patternClass)
-   * 3) class name (from patternConstructor)
-   * 4) namespace (from patternGetSet)
-   */
-  var pattern = RegExp(
-      '$patternNamespace\\.(?:$patternClass|$patternFunction|$patternConstructor)|$patternGetSet');
+  for (var mappedRange in mappedList) {
+    var filePath = mappedRange.dartFile;
+    var startLine = mappedRange.startLine;
+    var endLine = mappedRange.endLine;
 
-  var namespaceRegionEnd = _findNamespaceRegionEnd(functionStart, jsEntrypoint);
-  var namespaceRegionStart =
-      _findNamespaceRegionStart(namespaceRegionEnd, jsEntrypoint);
-  var matches = pattern.allMatches(
-      jsEntrypoint.substring(namespaceRegionStart, namespaceRegionEnd));
-
-  if (matches.isNotEmpty) {
-    var match = matches.last;
-    return {
-      'namespace': match.group(1) ?? match.group(4),
-      'class': match.group(2) ?? match.group(3)
-    };
-  } else {
-    return null;
-  }
-}
-
-int _findNamespaceRegionEnd(int functionStart, String coverageJson) {
-  var stringPattern = RegExp('"|\'|`');
-
-  var beforeStart = coverageJson.substring(0, functionStart);
-  var afterStart = coverageJson.substring(functionStart);
-  if (afterStart.startsWith('() ')) {
-    // If functionStart is followed by '() ' we know it's a built-in method or an
-    // otherwise uninteresting definition.
-    // These appear e.g. near the top of the JS file as 'let functionName = () => ...'
-    return 0;
-  } else if (afterStart.startsWith('function') && beforeStart.endsWith('= ')) {
-    // If the function start is followed by 'function' and preceded by '= ' it is
-    // either a constructor or a top-level function. Both of these have the namespace
-    // region just before the function definition.
-    return coverageJson.indexOf('(', functionStart);
-  } else {
-    // If we get here we know we're dealing with a class method of some kind.
-    // Search backwards until we find the brace ('{') that marks the beginning
-    // of the class body.
-    int braceDepth = 0;
-    bool inString = false;
-    String stringChar;
-
-    for (var i = functionStart; i >= 0; i--) {
-      var char = coverageJson[i];
-
-      if (!inString) {
-        if (char == '{') {
-          braceDepth--;
-        } else if (char == '}') {
-          braceDepth++;
-        } else if (stringPattern.hasMatch(char)) {
-          inString = true;
-          stringChar = char;
-        }
-
-        if (braceDepth == -1) {
-          return i;
-        }
-      } else if (char == stringChar) {
-        //TODO(komposten): This doesn't support escaped stringChars.
-        // Probably don't need to worry about interpolated strings since dartdevc
-        // doesn't appear to use that yet.
-        inString = false;
-      }
+    var fileCoverage =
+        fileCoverages.putIfAbsent(filePath, () => FileCoverage(filePath));
+    for (int i = startLine; i <= endLine; i++) {
+      fileCoverage.addLine(i, mappedRange.range.covered, mappedRange.range);
     }
   }
 
-  return 0;
-}
+  var buffer = StringBuffer();
+  for (var coverage in fileCoverages.values) {
+    var coveredLines = 0;
 
-_findNamespaceRegionStart(int namespaceRegionEnd, String coverageJson) {
-  var spaces = 0;
-  for (int i = namespaceRegionEnd; i >= 0; i--) {
-    if (coverageJson[i] == ' ' && ++spaces == 10) {
-      return i;
+    buffer.writeln('SF:${coverage.path}');
+
+    for (var line in coverage.lines.entries) {
+      var lineNumber = line.key + 1;
+      var covered = line.value['covered'] ? 1 : 0;
+      buffer.writeln('DA:$lineNumber,$covered');
+      coveredLines += covered;
     }
+
+    buffer.writeln('LF:${coverage.lines.length}');
+    buffer.writeln('LH:$coveredLines');
+    buffer.writeln('end_of_record');
   }
 
-  return 0;
-}
-
-bool _namespaceInFileList(
-    String namespace, List<File> files, Map<String, String> nsToLibMap) {
-  var library = nsToLibMap[namespace];
-
-  if (library != null) {
-    if (library.startsWith('package:')) {
-      library = library.substring(library.indexOf(RegExp(r'[\\/]')) + 1);
-    }
-
-    var libraryFile = path.fromUri(path.toUri(library));
-
-    var match = files.firstWhere(
-        (file) => path.fromUri(path.toUri(file.path)).endsWith(libraryFile),
-        orElse: () => null);
-    return match != null;
-  } else {
-    return false;
-  }
-}
-
-RangeList _buildRangeList(jsCoverage, List<FunctionInfo> functions) {
-  Function functionId = (name, index) => '$name@$index';
-
-  Map<String, FunctionInfo> functionMap = {};
-  functions.forEach((function) =>
-      functionMap[functionId(function.name, function.startIndex)] = function);
-
-  print('Valid functions: ${functionMap.keys}');
-
-  var rangeList = RangeList();
-  jsCoverage['functions'].forEach((function) {
-    var id = functionId(function['functionName'], getFunctionStart(function));
-    if (functionMap.containsKey(id)) {
-      print('Function ID valid: $id');
-      var functionInfo = functionMap[id];
-      function['ranges'].forEach((range) {
-        var start = range['startOffset'];
-        var end = range['endOffset'];
-        var isCovered = range['count'] != 0;
-
-        rangeList.add(Range(functionInfo, start, end, isCovered));
-      });
-    }
-  });
-  return rangeList;
+  return buffer.toString();
 }
 
 class FunctionInfo {
@@ -337,4 +195,57 @@ class FunctionInfo {
   final int startIndex;
 
   FunctionInfo(this.name, this.className, this.namespace, this.startIndex);
+}
+
+class MappedRange {
+  final Range range;
+  final String dartFile;
+  final int startLine;
+  final int startColumn;
+  final int endLine;
+  final int endColumn;
+
+  MappedRange(this.range, this.dartFile, this.startLine, this.startColumn,
+      this.endLine, this.endColumn);
+}
+
+class FileCoverage {
+  final String path;
+  Map<int, Map<String, dynamic>> _lines = LinkedHashMap();
+
+  FileCoverage(this.path);
+
+  void addLine(int lineNumber, bool covered, Range owner) {
+    var previous = _lines[lineNumber];
+
+    var relation = previous == null
+        ? _compare(null, owner)
+        : _compare(previous['owner'], owner);
+
+    if (relation == -1) {
+      _lines[lineNumber] = {'owner': owner, 'covered': covered};
+    } else if (relation == 0 && previous['covered'] == false) {
+      _lines[lineNumber] = {'owner': owner, 'covered': covered};
+    }
+  }
+
+  int _compare(Range first, Range second) {
+    if (first == null) {
+      return -1;
+    } else if (first == second) {
+      return 0;
+    } else if (second.start >= first.start && second.end <= first.end) {
+      return -1;
+    } else if (first.start >= second.start && first.end <= second.end) {
+      return 1;
+    } else {
+      Function printR =
+          (Range r) => print('${r.group}[${r.start}:${r.end}] -- ${r.covered}');
+      printR(first);
+      printR(second);
+      return 0;
+    }
+  }
+
+  Map<int, Map<String, dynamic>> get lines => _lines;
 }
