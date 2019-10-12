@@ -103,7 +103,9 @@ Future<List<MappedRange>> _mapRangesToDart(
           endPosition.sourceLine,
           endPosition.sourceColumn);
 
-      result.add(mappedRange);
+      if (mappedRange.isNotEmpty) {
+        result.add(mappedRange);
+      }
     }
   }
 
@@ -144,7 +146,7 @@ String _toLcov(List<MappedRange> mappedList) {
     var fileCoverage =
         fileCoverages.putIfAbsent(filePath, () => FileCoverage(filePath));
     for (int i = startLine; i <= endLine; i++) {
-      fileCoverage.addLine(i, mappedRange.range.covered, mappedRange.range);
+      fileCoverage.addLine(i, mappedRange);
     }
   }
 
@@ -188,6 +190,18 @@ class MappedRange {
 
   MappedRange(this.range, this.dartFile, this.startLine, this.startColumn,
       this.endLine, this.endColumn);
+
+  bool get isNotEmpty => (endLine > startLine || endColumn > startColumn);
+
+  bool contains(MappedRange other) {
+    bool startsInside = other.startLine > startLine ||
+        (other.startLine == startLine &&
+            other.startColumn >= startColumn);
+    bool endsInside = other.endLine < endLine ||
+        (other.endLine == endLine &&
+            other.endColumn <= endColumn);
+    return startsInside && endsInside;
+  }
 }
 
 class FileCoverage {
@@ -196,7 +210,7 @@ class FileCoverage {
 
   FileCoverage(this.path);
 
-  void addLine(int lineNumber, bool covered, Range owner) {
+  void addLine(int lineNumber, MappedRange owner) {
     var previous = _lines[lineNumber];
 
     var relation = previous == null
@@ -204,26 +218,26 @@ class FileCoverage {
         : _compare(previous['owner'], owner);
 
     if (relation == -1) {
-      _lines[lineNumber] = {'owner': owner, 'covered': covered};
+      _lines[lineNumber] = {'owner': owner, 'covered': owner.range.covered};
     } else if (relation == 0 && previous['covered'] == false) {
-      _lines[lineNumber] = {'owner': owner, 'covered': covered};
+      // We end up here if several ranges occur beside each other on the same line.
+      // In that case, treat the entire line as covered if at least one of the
+      // ranges has been covered.
+      // This is to be consistent with how the coverage package handles VM coverage.
+      _lines[lineNumber] = {'owner': owner, 'covered': owner.range.covered};
     }
   }
 
-  int _compare(Range first, Range second) {
+  int _compare(MappedRange first, MappedRange second) {
     if (first == null) {
       return -1;
     } else if (first == second) {
       return 0;
-    } else if (second.start >= first.start && second.end <= first.end) {
+    } else if (first.contains(second)) {
       return -1;
-    } else if (first.start >= second.start && first.end <= second.end) {
+    } else if (second.contains(first)) {
       return 1;
     } else {
-      Function printR =
-          (Range r) => print('${r.group}[${r.start}:${r.end}] -- ${r.covered}');
-      printR(first);
-      printR(second);
       return 0;
     }
   }
