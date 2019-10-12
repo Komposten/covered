@@ -223,7 +223,8 @@ class ChromeTester extends Tester {
     var lcov = await js_coverage.analyseJsCoverage(
         coverageFile, jsEntrypoint, jsSourceMap, projectDir);
 
-    var outputFile = File(path.join(reportsDir, 'lcov_chrome2.info'));
+    var outputFile = File(path.join(reportsDir, 'lcov_chrome.info'));
+    await outputFile.create(recursive: true);
     await outputFile.writeAsString(lcov);
     return outputFile;
   }
