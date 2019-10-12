@@ -67,7 +67,7 @@ class ChromeTester extends Tester {
 
     var exitCode = await process.exitCode;
     if (exitCode != 0) {
-      throw 'dart2js failed with exit code $exitCode';
+      throw 'dartdevc failed with exit code $exitCode';
     }
 
     return outputFile;

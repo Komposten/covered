@@ -58,10 +58,17 @@ Future<void> main(List<String> arguments) async {
         ' on platforms ${argResults['platforms']}');
     var testOutput = Output.values
         .firstWhere((v) => v.toString().endsWith(argResults['test-output']));
-    await collectTestCoverage(argResults['platforms'], testOutput,
+
+    bool success = await collectTestCoverage(argResults['platforms'], testOutput,
         argResults['headless'], argResults.rest);
-    stdout.writeln('\nThe coverage analysis completed successfully!');
-    stdout.writeln(
-        'The coverage report(s) can be found in the ${path.join('.covered', 'reports')} directory.');
+
+    if (success) {
+      stdout.writeln('\nThe coverage analysis completed successfully!');
+      stdout.writeln(
+          'The coverage report(s) can be found in the ${path.join(
+              '.covered', 'reports')} directory.');
+    } else {
+      exit(1);
+    }
   }
 }
