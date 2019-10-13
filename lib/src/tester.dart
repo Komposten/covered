@@ -25,13 +25,15 @@ abstract class Tester {
 
   Tester(this.projectDir, this.platform);
 
-  Future<void> testAndCollect(List<String> testArgs, List<TestInfo> tests,
+  Future<File> testAndCollect(List<String> testArgs, List<TestInfo> tests,
       Output testOutputLevel) async {
     var testFile = await _buildTestEntryPoint(tests);
     var coverageFile = await runTestsAndCollect(testFile, testOutputLevel);
 
     stdout.writeln(
-        '>> $platform coverage report written to ${coverageFile.path}');
+        '>> $platform coverage report written to ${coverageFile.absolute.path}');
+
+    return coverageFile;
   }
 
   Future<File> _buildTestEntryPoint(List<TestInfo> tests) async {

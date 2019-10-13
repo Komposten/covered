@@ -139,7 +139,7 @@ String _toLcov(List<MappedRange> mappedList) {
   Map<String, FileCoverage> fileCoverages = {};
 
   for (var mappedRange in mappedList) {
-    var filePath = mappedRange.dartFile;
+    var filePath = mappedRange.dartFile.replaceAll('/', path.separator);
     var startLine = mappedRange.startLine;
     var endLine = mappedRange.endLine;
 

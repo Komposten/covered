@@ -10,12 +10,14 @@
 import 'dart:io';
 
 import 'package:covered/src/chrome_tester.dart';
+import 'package:covered/src/lcov.dart';
 import 'package:covered/src/output.dart';
 import 'package:covered/src/test_parser.dart';
 import 'package:covered/src/tester.dart';
 import 'package:covered/src/testinfo.dart';
 import 'package:covered/src/utilities.dart';
 import 'package:covered/src/vm_tester.dart';
+import 'package:lcov/lcov.dart';
 import 'package:path/path.dart' as path;
 
 Future<bool> collectTestCoverage(List<String> platforms, Output testOutputLevel,
@@ -25,23 +27,29 @@ Future<bool> collectTestCoverage(List<String> platforms, Output testOutputLevel,
   var tests = await _getTestFiles();
   stdout.writeln('>> ${tests.length} test files found!');
 
-  List<String> failures = [];
+  Map<String, File> coverageFiles = {};
   await Future.forEach(platforms, (platform) async {
     stdout.writeln(
         '\nRunning tests and coverage analysis for platform \'$platform\'...');
 
-    bool success = await _testAndCollect(
+    File coverageFile = await _testAndCollect(
         platform, headless, testArgs, tests, testOutputLevel);
 
-    if (!success) {
-      failures.add(platform);
-    }
+    coverageFiles[platform] = coverageFile;
   });
 
-  if (failures.isNotEmpty) {
-    stdout.writeln('\u001b[1;31mCoverage collection failed for the following platforms: $failures\u001b[0m');
+  if (coverageFiles.values.contains(null)) {
+    List<String> failures = coverageFiles.entries
+        .where((entry) => entry.value == null)
+        .map((entry) => entry.key)
+        .toList();
+    stdout.writeln(
+        '\u001b[1;31mCoverage collection failed for the following platforms: $failures\u001b[0m');
     return false;
   } else {
+    if (coverageFiles.length > 1) {
+      await _mergeCoverage(coverageFiles.values.toList());
+    }
     return true;
   }
 }
@@ -58,7 +66,7 @@ Future<List<TestInfo>> _getTestFiles() async {
       .toList();
 }
 
-Future<bool> _testAndCollect(String platform, bool headless,
+Future<File> _testAndCollect(String platform, bool headless,
     List<String> testArgs, List<TestInfo> tests, Output testOutputLevel) async {
   tests = tests
       .where((test) =>
@@ -76,13 +84,27 @@ Future<bool> _testAndCollect(String platform, bool headless,
   }
 
   try {
-    await tester.testAndCollect(testArgs, tests, testOutputLevel);
-    return true;
+    return await tester.testAndCollect(testArgs, tests, testOutputLevel);
   } catch (error) {
     stdout.writeln('\u001b[1;31mTesting failed for $platform: $error\u001b[0m');
     if (error is Error) {
       stdout.writeln(error.stackTrace);
     }
-    return false;
+    return null;
   }
+}
+
+Future<void> _mergeCoverage(List<File> list) async {
+  stdout.writeln('\nMerging coverage reports...');
+
+  List<Report> lcovReports =
+      list.map((file) => Report.fromCoverage(file.readAsStringSync())).toList();
+  Report merged = Lcov.merge(lcovReports);
+
+  var reportFile = File(path.join(
+      Directory.current.path, '.covered', 'reports', 'lcov_merged.info'));
+  await reportFile.create(recursive: true);
+  await reportFile.writeAsString(merged.toString());
+  stdout.writeln(
+      '>> Merged coverage report written to ${reportFile.absolute.path}');
 }
