@@ -38,6 +38,7 @@ class VmTester extends Tester {
       File entrypoint, Output outputLevel) async {
     Process process = await _startTestRunner(entrypoint);
 
+    var testCompleter = Completer<String>();
     var uriCompleter = Completer<Uri>();
     process.stdout
         .transform(utf8.decoder)
@@ -52,7 +53,23 @@ class VmTester extends Tester {
         }
       }
 
+      if (!testCompleter.isCompleted) {
+        if (line.contains('All tests passed')) {
+          testCompleter.complete('');
+        } else if (line.contains('Some tests failed')) {
+          testCompleter.complete('Some tests failed!');
+        }
+      }
+
       _printTestOutput(line, outputLevel);
+    });
+    process.stderr
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+          if (!testCompleter.isCompleted) {
+            testCompleter.complete('An error occurred while running the tests!');
+          }
     });
 
     var observatoryUri = await uriCompleter.future.catchError((e) {
@@ -60,19 +77,18 @@ class VmTester extends Tester {
     });
 
     if (observatoryUri != null) {
-      Map<String, dynamic> data;
-      try {
-        data = await coverage.collect(observatoryUri, true, true, false, {});
-      } finally {
-        await process.stderr.drain();
-      }
+      var testsComplete = await testCompleter.future;
 
-      var exitCode = await process.exitCode;
-      if (exitCode != 0) {
-        throw 'Testing failed with exit code $exitCode';
-      }
+      if (testsComplete.isEmpty) {
+        Map<String, dynamic> data;
+        data = await coverage.collect(observatoryUri, true, false, false, {});
 
-      return data;
+        process.kill(ProcessSignal.sigterm);
+        return data;
+      } else {
+        process.kill(ProcessSignal.sigterm);
+        throw testsComplete;
+      }
     } else {
       throw StateError(
           'The observatory was not enabled; try using a different port!');
