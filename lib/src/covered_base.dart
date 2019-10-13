@@ -80,6 +80,9 @@ Future<bool> _testAndCollect(String platform, bool headless,
     return true;
   } catch (error) {
     stdout.writeln('\u001b[1;31mTesting failed for $platform: $error\u001b[0m');
+    if (error is Error) {
+      stdout.writeln(error.stackTrace);
+    }
     return false;
   }
 }
