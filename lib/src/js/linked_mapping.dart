@@ -14,29 +14,39 @@ class LinkedMapping {
     LinkedTargetEntry lastEntry;
     for (var line in mapping.lines) {
       var linkedLine = LinkedLineEntry(line.line);
-      if (lines.isNotEmpty) {
-        lines.last._next = linkedLine;
-        linkedLine._previous = lines.last;
-      }
-      lines.add(linkedLine);
-
       for (var entry in line.entries) {
         String sourceUrl = _getSourceUrl(mapping, entry, mapUrl);
 
         var linkedEntry = LinkedTargetEntry(linkedLine, entry.column,
             entry.sourceLine, entry.sourceColumn, sourceUrl);
-        if (lastEntry != null) {
-          lastEntry._next = linkedEntry;
-          linkedEntry._previous = lastEntry;
+
+        if (linkedEntry.sourceColumn != null && linkedEntry.sourceLine != null) {
+          if (lastEntry != null) {
+            lastEntry._next = linkedEntry;
+            linkedEntry._previous = lastEntry;
+          }
+
+          linkedLine.entries.add(linkedEntry);
+          lastEntry = linkedEntry;
+        }
+      }
+
+      if (linkedLine.entries.isNotEmpty) {
+        if (lines.isNotEmpty) {
+          lines.last._next = linkedLine;
+          linkedLine._previous = lines.last;
         }
 
-        linkedLine.entries.add(linkedEntry);
-        lastEntry = linkedEntry;
+        lines.add(linkedLine);
       }
     }
   }
 
   String _getSourceUrl(SingleMapping mapping, TargetEntry entry, Uri mapUrl) {
+    if (entry.sourceUrlId == null) {
+      return null;
+    }
+
     var sourceUrl = mapping.urls[entry.sourceUrlId];
     if (mapping.sourceRoot != null) {
       sourceUrl = '${mapping.sourceRoot}$sourceUrl';
