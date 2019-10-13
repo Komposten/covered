@@ -97,18 +97,12 @@ class ChromeTester extends Tester {
     var jsPath = jsFile.absolute.path;
     var nodeEntrypoint = await _copyNodeEntrypoint();
 
-    var nodeArgs = [
-      nodeEntrypoint.path,
-      '8787',
-      path.context.toUri(htmlPath).toString(),
-      path.context.toUri(jsPath).toString(),
-      outputLevel.toString().substring(outputLevel.toString().indexOf('.') + 1)
-    ];
     stdout.writeln('>> Running npm...');
     await runNpm(nodeEntrypoint);
+
     stdout.writeln('>> Launching Chrome...');
-    //TODO(komposten): Abort if Chrome fails to start (e.g. if the port is in use).
     var chrome = await _launchChrome();
+
     chrome.stdout
         .transform(utf8.decoder)
         .transform(const LineSplitter())
@@ -121,23 +115,31 @@ class ChromeTester extends Tester {
         .listen((line) {
       stderr.writeln('C>>> $line');
     });
+
     stdout.writeln('>> Running tests...');
-    var process = await Process.start('node', nodeArgs,
+    var nodeArgs = [
+      nodeEntrypoint.path,
+      '8787',
+      path.context.toUri(htmlPath).toString(),
+      path.context.toUri(jsPath).toString(),
+      outputLevel.toString().substring(outputLevel.toString().indexOf('.') + 1)
+    ];
+    var node = await Process.start('node', nodeArgs,
         workingDirectory: nodeEntrypoint.parent.path);
-    process.stdout
+    node.stdout
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen((line) {
       stdout.writeln('>>>> $line');
     });
-    process.stderr
+    node.stderr
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen((line) {
       stderr.writeln('>>>> $line');
     });
 
-    var exitCode = await process.exitCode;
+    var exitCode = await node.exitCode;
     chrome.kill(ProcessSignal.sigterm);
     if (exitCode != 0) {
       handleNodeExitCode(exitCode);
