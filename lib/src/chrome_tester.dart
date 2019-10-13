@@ -141,21 +141,23 @@ class ChromeTester extends Tester {
 
     var exitCode = await node.exitCode;
     chrome.kill(ProcessSignal.sigterm);
-    if (exitCode != 0) {
-      handleNodeExitCode(exitCode);
-    }
+    handleNodeExitCode(exitCode);
 
     return File(path.join(internalDir, 'js_reports', 'chrome.json'));
   }
 
   void handleNodeExitCode(int exitCode) {
-    if (exitCode == 1) {
+    if (exitCode == 0) {
+      return;
+    } else if (exitCode == 1) {
       throw 'Some tests failed!';
     } else if (exitCode == 2) {
-      throw 'An error occurred while running the tests (see above)!';
+      throw 'No tests ran!';
     } else if (exitCode == 3) {
-      throw 'An error occurred while communicating with Chrome (see above)!';
+      throw 'An error occurred while running the tests (see above)!';
     } else if (exitCode == 4) {
+      throw 'An error occurred while communicating with Chrome (see above)!';
+    } else if (exitCode == 5) {
       throw 'An error occurred while writing the coverage data (see above)!';
     } else {
       throw 'node failed with exit code $exitCode';
