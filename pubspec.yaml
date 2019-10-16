@@ -1,6 +1,6 @@
 name: covered
-description: Test coverage for both server-side and web-based dart projects.
-version: 0.0.1
+description: Code coverage Dart applications running in the Dart VM and browsers.
+version: 0.1.0
 homepage: https://www.github.com/komposten/
 repository: https://www.github.com/komposten/covered
 issue_tracker: https://www.github.com/komposten/covered/issues

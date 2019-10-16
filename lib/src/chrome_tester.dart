@@ -214,9 +214,8 @@ class ChromeTester extends Tester {
       chromeArgs.insert(1, '--headless');
     }
 
-    //FIXME(komposten): Temporary hardcoded chrome path.
     return await Process.start(
-      r'C:\Program Files (x86)\Google\Chrome\Application\chrome',
+      'chrome',
       chromeArgs,
       workingDirectory: projectDir,
     );
