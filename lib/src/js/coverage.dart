@@ -5,19 +5,20 @@ import 'dart:io';
 import 'package:covered/src/js/linked_mapping.dart';
 import 'package:covered/src/js/range.dart';
 import 'package:covered/src/js/range_list.dart';
-import 'package:covered/src/js/utilities.dart';
+import 'package:covered/src/js/utilities.dart' as js_utils;
+import 'package:covered/src/utilities.dart' as utils;
 import 'package:path/path.dart' as path;
 
 /*TODO(komposten): Rewrite this as a class so some function parameters can be
    stored as instance variables
  */
 Future<String> analyseJsCoverage(File coverageFile, File jsEntrypoint,
-    File jsSourceMap, String projectRoot) async {
+    File jsSourceMap, String projectRoot, List<String> reportOn) async {
   var jsCoverage = json.decode(await coverageFile.readAsString());
   RangeList rangeList = _buildRangeList(jsCoverage);
   List<MappedRange> mappedList =
       await _mapRangesToDart(rangeList, jsEntrypoint, jsSourceMap);
-  _filterMappedList(mappedList, projectRoot);
+  _filterMappedList(mappedList, projectRoot, reportOn);
 
   return _toLcov(mappedList);
 }
@@ -64,7 +65,7 @@ Future<List<MappedRange>> _mapRangesToDart(
   var mapping =
       LinkedMapping(await jsSourceMap.readAsString(), jsSourceMap.uri);
   List<MappedRange> result = [];
-  var offsetConverter = OffsetToLineConverter(entrypointRaw);
+  var offsetConverter = js_utils.OffsetToLineConverter(entrypointRaw);
 
   var index = 0;
   for (var range in rangeList.list) {
@@ -86,10 +87,6 @@ Future<List<MappedRange>> _mapRangesToDart(
       } else if (startPosition.next != null && startPosition != endPosition) {
         startPosition = startPosition.next;
       }
-      /* FIXME(komposten): Temp4's someValue and otherValue are still marked as covered.
-          Is this because the true "not covered" coverage is missed, or because
-          of the merging of line data (see FileCoverage)?
-       */
 
       while (startPosition.sourceUrl != endPosition.sourceUrl) {
         startPosition = startPosition.next;
@@ -126,12 +123,21 @@ void _printProgress(int index, int interval, int count, String text) {
   }
 }
 
-void _filterMappedList(List<MappedRange> mappedList, String projectRoot) {
+void _filterMappedList(
+    List<MappedRange> mappedList, String projectRoot, List<String> reportOn) {
+  var dotCovered = path.join(projectRoot, '.covered');
+
   mappedList.removeWhere((range) {
     var dartFile = path.normalize(range.dartFile);
-    var isProjectFile = (path.isWithin(projectRoot, dartFile) &&
-        !dartFile.contains('.covered'));
-    return !isProjectFile;
+    if (reportOn.isEmpty) {
+      var isProjectFile = (path.isWithin(projectRoot, dartFile) &&
+          !path.isWithin(dotCovered, dartFile));
+      return !isProjectFile;
+    } else {
+      var shouldReportOn = reportOn
+          .any((p) => path.isWithin(p, dartFile) || path.equals(p, dartFile));
+      return !shouldReportOn;
+    }
   });
 }
 
@@ -139,7 +145,7 @@ String _toLcov(List<MappedRange> mappedList) {
   Map<String, FileCoverage> fileCoverages = {};
 
   for (var mappedRange in mappedList) {
-    var filePath = mappedRange.dartFile.replaceAll('/', path.separator);
+    var filePath = utils.fixPathSeparators(mappedRange.dartFile);
     var startLine = mappedRange.startLine;
     var endLine = mappedRange.endLine;
 
@@ -195,11 +201,9 @@ class MappedRange {
 
   bool contains(MappedRange other) {
     bool startsInside = other.startLine > startLine ||
-        (other.startLine == startLine &&
-            other.startColumn >= startColumn);
+        (other.startLine == startLine && other.startColumn >= startColumn);
     bool endsInside = other.endLine < endLine ||
-        (other.endLine == endLine &&
-            other.endColumn <= endColumn);
+        (other.endLine == endLine && other.endColumn <= endColumn);
     return startsInside && endsInside;
   }
 }

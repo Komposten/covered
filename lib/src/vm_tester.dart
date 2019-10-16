@@ -21,7 +21,8 @@ class VmTester extends Tester {
       RegExp(r'\d+(?::\d+)+(?:\s+[+-~]\d+)*\s*:(?:.+)');
   final colourSequencePattern = RegExp(r'.\[\d+m', caseSensitive: true);
 
-  VmTester(String projectDir, int port) : super(projectDir, port, 'vm');
+  VmTester(String projectDir, int port, List<String> reportOn)
+      : super(projectDir, port, 'vm', reportOn);
 
   @override
   Future<File> runTestsAndCollect(
@@ -150,12 +151,24 @@ class VmTester extends Tester {
       packagesPath: path.join(projectDir, '.packages'),
     );
     var formatter = coverage.LcovFormatter(resolver,
-        reportOn: ['lib${path.separator}'], basePath: projectDir);
+        reportOn: _getReportOn(), basePath: projectDir);
     var data = await formatter.format(hitmap);
     var file = File(path.join(reportsDir, 'lcov_vm.info'));
     await file.create(recursive: true);
     await file.writeAsString(data);
 
     return file;
+  }
+
+  List<String> _getReportOn() {
+    if (reportOn.isNotEmpty) {
+      return reportOn;
+    } else {
+      var entities = Directory(projectDir).listSync()
+        ..removeWhere((entity) => path.basename(entity.path) == '.covered');
+      return entities
+          .map((entity) => path.relative(entity.path, from: projectDir))
+          .toList();
+    }
   }
 }

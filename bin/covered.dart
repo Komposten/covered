@@ -29,7 +29,8 @@ Future<void> main(List<String> arguments) async {
   parser.addOption('port',
       defaultsTo: '8787',
       help:
-          'Which port to use for the Dart VM and Chrome observatories. Should be an integer in the range 0-65535.');
+          'Which port to use for the Dart VM and Chrome observatories. Should be an integer in the range 0-65535.',
+      valueHelp: 'PORT');
   parser.addOption('test-output',
       abbr: 't',
       defaultsTo: 'minimal',
@@ -47,6 +48,11 @@ Future<void> main(List<String> arguments) async {
       abbr: 'l',
       help: 'If Chrome should be run in headless mode',
       negatable: false);
+  parser.addMultiOption('report-on',
+      abbr: 'r',
+      help: 'Directories and/or files to report coverage for.'
+          ' Defaults to include all classes inside the current working directory.',
+      valueHelp: 'PATHS');
   parser.addSeparator(
       'and testArgs are additional options passed to the test run.');
 
@@ -62,21 +68,53 @@ Future<void> main(List<String> arguments) async {
         ' on platforms ${argResults['platforms']}');
     var testOutput = Output.values
         .firstWhere((v) => v.toString().endsWith(argResults['test-output']));
-    var port = int.tryParse(argResults['port']);
 
-    if (port == null || port < 0 || port > 65535) {
-      stdout
-          .writeln('[--port] must be a valid integer in the range [0, 65535]!');
+    var port = _getPort(argResults);
+    if (port == null) {
       return;
     }
 
+    _validateReportOn(argResults['report-on']);
     await _run(argResults, port, testOutput);
   }
 }
 
+int _getPort(ArgResults argResults) {
+  var port = int.tryParse(argResults['port']);
+
+  if (port == null) {
+    stdout.writeln('[--port] must be an integer in the range [0, 65535]!');
+  } else if (port < 0 || port > 65535) {
+    port = null;
+    stdout.writeln('[--port] must be in the range [0, 65535]!');
+  }
+
+  return port;
+}
+
+void _validateReportOn(List<String> reportOn) {
+  if (reportOn.isNotEmpty) {
+    var missing = reportOn.toList()
+      ..removeWhere(
+          (path) => (Directory(path).existsSync() || File(path).existsSync()));
+
+    if (missing.isNotEmpty) {
+      stdout.writeln(
+          'One or more of the [--reports-on] paths could not be found:\n  ' +
+              missing.join('\n  '));
+      stdout.writeln('Coverage analysis will proceed anyway.');
+    }
+  }
+}
+
 Future _run(ArgResults argResults, int port, Output testOutput) async {
-  bool success = await collectTestCoverage(argResults['platforms'], port,
-      testOutput, argResults['headless'], argResults.rest);
+  bool success = await collectTestCoverage(
+      argResults['platforms'],
+      port,
+      testOutput,
+      argResults['headless'],
+      argResults['report-on'],
+      argResults.rest);
 
   if (success) {
     stdout.writeln('\nThe coverage analysis completed successfully!');

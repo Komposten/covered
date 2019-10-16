@@ -10,6 +10,7 @@
 import 'dart:io';
 
 import 'package:boolean_selector/boolean_selector.dart';
+import 'package:path/path.dart' as path;
 
 const _browsers = 'chrome || phantomjs || firefox || safari || ie';
 const _blink = 'chrome';
@@ -54,4 +55,8 @@ String _getSystem(String testOnString) {
   }
 
   return null;
+}
+
+String fixPathSeparators(String string) {
+  return string.replaceAll('/', path.separator);
 }

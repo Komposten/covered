@@ -20,8 +20,9 @@ import 'package:resource/resource.dart';
 class ChromeTester extends Tester {
   final bool headless;
 
-  ChromeTester(String projectDir, int port, this.headless)
-      : super(projectDir, port, 'chrome');
+  ChromeTester(
+      String projectDir, int port, this.headless, List<String> reportOn)
+      : super(projectDir, port, 'chrome', reportOn);
 
   @override
   Future<File> runTestsAndCollect(
@@ -225,7 +226,7 @@ class ChromeTester extends Tester {
       File coverageFile, File jsEntrypoint, File jsSourceMap) async {
     stdout.writeln('>> Compiling coverage report...');
     var lcov = await js_coverage.analyseJsCoverage(
-        coverageFile, jsEntrypoint, jsSourceMap, projectDir);
+        coverageFile, jsEntrypoint, jsSourceMap, projectDir, reportOn);
 
     var outputFile = File(path.join(reportsDir, 'lcov_chrome.info'));
     await outputFile.create(recursive: true);

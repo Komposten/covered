@@ -11,12 +11,14 @@ import 'dart:io';
 
 import 'package:covered/src/output.dart';
 import 'package:covered/src/testinfo.dart';
+import 'package:covered/src/utilities.dart';
 import 'package:path/path.dart' as path;
 
 abstract class Tester {
   final String projectDir;
   final int port;
   final String platform;
+  final List<String> reportOn;
 
   String get outputDir => path.join(projectDir, '.covered');
 
@@ -24,7 +26,11 @@ abstract class Tester {
 
   String get reportsDir => path.join(outputDir, 'reports');
 
-  Tester(this.projectDir, int port, this.platform) : this.port = port ?? 8787;
+  Tester(this.projectDir, int port, this.platform, List<String> reportOn)
+      : this.port = port ?? 8787,
+        this.reportOn = List.unmodifiable((reportOn != null
+            ? reportOn.map((path) => fixPathSeparators(path))
+            : []));
 
   Future<File> testAndCollect(List<String> testArgs, List<TestInfo> tests,
       Output testOutputLevel) async {
