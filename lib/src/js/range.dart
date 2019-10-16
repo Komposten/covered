@@ -54,10 +54,11 @@ class Range {
   }
 
   bool overlaps(Range other) {
-    return group == other.group && (_contains(other.start) ||
-        _contains(other.end) ||
-        other._contains(start) ||
-        other._contains(end));
+    return group == other.group &&
+        (_contains(other.start) ||
+            _contains(other.end) ||
+            other._contains(start) ||
+            other._contains(end));
   }
 
   bool _contains(num value) {

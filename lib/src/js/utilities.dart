@@ -14,8 +14,9 @@ class OffsetToLineConverter {
     }
 
     var line = RegExp(r'\r\n?|\n\r?')
-        .allMatches(_text.substring(lastOffset, offset))
-        .length + lastLineEnd;
+            .allMatches(_text.substring(lastOffset, offset))
+            .length +
+        lastLineEnd;
 
     lastLineEnd = line;
     lastOffset = offset;
@@ -30,7 +31,7 @@ class OffsetToLineConverter {
       return offset;
     }
 
-    var newlineIndex = _text.lastIndexOf(RegExp(r'\r\n?|\n\r?'), offset-1);
+    var newlineIndex = _text.lastIndexOf(RegExp(r'\r\n?|\n\r?'), offset - 1);
 
     if (newlineIndex == -1) {
       return offset;
@@ -44,7 +45,8 @@ class OffsetToLineConverter {
       throw ArgumentError('[offset] cannot be negative: $offset < 0');
     }
     if (offset > _text.length) {
-      throw ArgumentError('[offset] cannot be after the end of the text: $offset > ${_text.length}');
+      throw ArgumentError(
+          '[offset] cannot be after the end of the text: $offset > ${_text.length}');
     }
   }
 }

@@ -36,17 +36,28 @@ main() {
       var lines = mapping.lines;
       var source1Url = 'test/res/linked_mapping/source1.dart';
       var source2Url = 'test/res/linked_mapping/source2.dart';
-      _compareEntries(lines[0].entries[0], LinkedTargetEntry(lines[0], 32, 1, 7, source1Url));
-      _compareEntries(lines[0].entries[1], LinkedTargetEntry(lines[0], 52, 1, 15, source1Url));
-      _compareEntries(lines[1].entries[0], LinkedTargetEntry(lines[1], 8, 2, 48, source1Url));
-      _compareEntries(lines[2].entries[0], LinkedTargetEntry(lines[2], 26, 4, 5, source1Url));
-      _compareEntries(lines[2].entries[1], LinkedTargetEntry(lines[2], 30, 4, 18, source1Url));
-      _compareEntries(lines[2].entries[2], LinkedTargetEntry(lines[2], 53, 4, 29, source1Url));
-      _compareEntries(lines[2].entries[3], LinkedTargetEntry(lines[2], 76, 5, 14, source1Url));
-      _compareEntries(lines[2].entries[4], LinkedTargetEntry(lines[2], 89, 5, 28, source1Url));
-      _compareEntries(lines[3].entries[0], LinkedTargetEntry(lines[3], 12, 3, 18, source2Url));
-      _compareEntries(lines[3].entries[1], LinkedTargetEntry(lines[3], 21, 3, 49, source2Url));
-      _compareEntries(lines[3].entries[2], LinkedTargetEntry(lines[3], 48, 3, 55, source2Url));
+      _compareEntries(lines[0].entries[0],
+          LinkedTargetEntry(lines[0], 32, 1, 7, source1Url));
+      _compareEntries(lines[0].entries[1],
+          LinkedTargetEntry(lines[0], 52, 1, 15, source1Url));
+      _compareEntries(lines[1].entries[0],
+          LinkedTargetEntry(lines[1], 8, 2, 48, source1Url));
+      _compareEntries(lines[2].entries[0],
+          LinkedTargetEntry(lines[2], 26, 4, 5, source1Url));
+      _compareEntries(lines[2].entries[1],
+          LinkedTargetEntry(lines[2], 30, 4, 18, source1Url));
+      _compareEntries(lines[2].entries[2],
+          LinkedTargetEntry(lines[2], 53, 4, 29, source1Url));
+      _compareEntries(lines[2].entries[3],
+          LinkedTargetEntry(lines[2], 76, 5, 14, source1Url));
+      _compareEntries(lines[2].entries[4],
+          LinkedTargetEntry(lines[2], 89, 5, 28, source1Url));
+      _compareEntries(lines[3].entries[0],
+          LinkedTargetEntry(lines[3], 12, 3, 18, source2Url));
+      _compareEntries(lines[3].entries[1],
+          LinkedTargetEntry(lines[3], 21, 3, 49, source2Url));
+      _compareEntries(lines[3].entries[2],
+          LinkedTargetEntry(lines[3], 48, 3, 55, source2Url));
     });
 
     test('correctLineChaining', () {

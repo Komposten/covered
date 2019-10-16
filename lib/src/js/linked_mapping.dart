@@ -20,7 +20,8 @@ class LinkedMapping {
         var linkedEntry = LinkedTargetEntry(linkedLine, entry.column,
             entry.sourceLine, entry.sourceColumn, sourceUrl);
 
-        if (linkedEntry.sourceColumn != null && linkedEntry.sourceLine != null) {
+        if (linkedEntry.sourceColumn != null &&
+            linkedEntry.sourceLine != null) {
           if (lastEntry != null) {
             lastEntry._next = linkedEntry;
             linkedEntry._previous = lastEntry;

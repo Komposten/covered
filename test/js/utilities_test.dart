@@ -17,7 +17,7 @@ main() {
       });
 
       test('offsetAfterTextEnd_throwArgumentError', () {
-        expect(() => converter.getLine(text.length+1), throwsArgumentError);
+        expect(() => converter.getLine(text.length + 1), throwsArgumentError);
       });
 
       test('increasingOffsets', () {
@@ -48,7 +48,7 @@ main() {
       });
 
       test('offsetAfterTextEnd_throwArgumentError', () {
-        expect(() => converter.getLine(text.length+1), throwsArgumentError);
+        expect(() => converter.getLine(text.length + 1), throwsArgumentError);
       });
 
       test('offsetOnFirstLine', () {
@@ -59,7 +59,8 @@ main() {
 
       test('offsetOnOtherLines', () {
         expect(converter.getColumn(15), 15); //15 is a newline character
-        expect(converter.getColumn(16), 0); //16 is right after a newline character
+        expect(
+            converter.getColumn(16), 0); //16 is right after a newline character
         expect(converter.getColumn(28), 5);
         expect(converter.getColumn(49), 8);
         expect(converter.getColumn(text.length), 12);
