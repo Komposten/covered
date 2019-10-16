@@ -20,7 +20,8 @@ import 'package:resource/resource.dart';
 class ChromeTester extends Tester {
   final bool headless;
 
-  ChromeTester(String projectDir, this.headless) : super(projectDir, 'chrome');
+  ChromeTester(String projectDir, int port, this.headless)
+      : super(projectDir, port, 'chrome');
 
   @override
   Future<File> runTestsAndCollect(
@@ -198,7 +199,7 @@ class ChromeTester extends Tester {
 
   Future<Process> _launchChrome() async {
     var chromeArgs = [
-      '--remote-debugging-port=8787',
+      '--remote-debugging-port=$port',
       '--disable-extensions',
       '--disable-popup-blocking',
       '--bwsi',
@@ -206,7 +207,6 @@ class ChromeTester extends Tester {
       '--no-default-browser-check',
       '--disable-default-apps',
       '--disable-translate',
-      //TODO(komposten): Add a command line option for the port
     ];
 
     if (headless) {

@@ -26,6 +26,10 @@ Future<void> main(List<String> arguments) async {
       allowed: ['vm', 'chrome'],
       help: 'Specify what platforms to run tests on.',
       valueHelp: 'PLATFORMS');
+  parser.addOption('port',
+      defaultsTo: '8787',
+      help:
+          'Which port to use for the Dart VM and Chrome observatories. Should be an integer in the range 0-65535.');
   parser.addOption('test-output',
       abbr: 't',
       defaultsTo: 'minimal',
@@ -58,17 +62,27 @@ Future<void> main(List<String> arguments) async {
         ' on platforms ${argResults['platforms']}');
     var testOutput = Output.values
         .firstWhere((v) => v.toString().endsWith(argResults['test-output']));
+    var port = int.tryParse(argResults['port']);
 
-    bool success = await collectTestCoverage(argResults['platforms'], testOutput,
-        argResults['headless'], argResults.rest);
-
-    if (success) {
-      stdout.writeln('\nThe coverage analysis completed successfully!');
-      stdout.writeln(
-          'The coverage report(s) can be found in the ${path.join(
-              '.covered', 'reports')} directory.');
-    } else {
-      exit(1);
+    if (port == null || port < 0 || port > 65535) {
+      stdout
+          .writeln('[--port] must be a valid integer in the range [0, 65535]!');
+      return;
     }
+
+    await _run(argResults, port, testOutput);
+  }
+}
+
+Future _run(ArgResults argResults, int port, Output testOutput) async {
+  bool success = await collectTestCoverage(argResults['platforms'], port,
+      testOutput, argResults['headless'], argResults.rest);
+
+  if (success) {
+    stdout.writeln('\nThe coverage analysis completed successfully!');
+    stdout.writeln(
+        'The coverage report(s) can be found in the ${path.join('.covered', 'reports')} directory.');
+  } else {
+    exit(1);
   }
 }

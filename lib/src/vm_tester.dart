@@ -21,7 +21,7 @@ class VmTester extends Tester {
       RegExp(r'\d+(?::\d+)+(?:\s+[+-~]\d+)*\s*:(?:.+)');
   final colourSequencePattern = RegExp(r'.\[\d+m', caseSensitive: true);
 
-  VmTester(String projectDir) : super(projectDir, 'vm');
+  VmTester(String projectDir, int port) : super(projectDir, port, 'vm');
 
   @override
   Future<File> runTestsAndCollect(
@@ -67,9 +67,9 @@ class VmTester extends Tester {
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen((line) {
-          if (!testCompleter.isCompleted) {
-            testCompleter.complete('An error occurred while running the tests!');
-          }
+      if (!testCompleter.isCompleted) {
+        testCompleter.complete('An error occurred while running the tests!');
+      }
     });
 
     var observatoryUri = await uriCompleter.future.catchError((e) {
@@ -99,8 +99,7 @@ class VmTester extends Tester {
     final dartArgs = [
       '--pause-isolates-on-exit',
       '--enable_asserts',
-      '--enable-vm-service=8787',
-      //TODO(komposten): Add a command line option for the port.
+      '--enable-vm-service=$port',
       entrypoint.path
     ];
 

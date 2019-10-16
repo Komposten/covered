@@ -20,8 +20,8 @@ import 'package:covered/src/vm_tester.dart';
 import 'package:lcov/lcov.dart';
 import 'package:path/path.dart' as path;
 
-Future<bool> collectTestCoverage(List<String> platforms, Output testOutputLevel,
-    bool headless, List<String> testArgs) async {
+Future<bool> collectTestCoverage(List<String> platforms, int port,
+    Output testOutputLevel, bool headless, List<String> testArgs) async {
   stdout.writeln('Searching for test files...');
 
   var tests = await _getTestFiles();
@@ -33,7 +33,7 @@ Future<bool> collectTestCoverage(List<String> platforms, Output testOutputLevel,
         '\nRunning tests and coverage analysis for platform \'$platform\'...');
 
     File coverageFile = await _testAndCollect(
-        platform, headless, testArgs, tests, testOutputLevel);
+        platform, port, headless, testArgs, tests, testOutputLevel);
 
     coverageFiles[platform] = coverageFile;
   });
@@ -66,7 +66,7 @@ Future<List<TestInfo>> _getTestFiles() async {
       .toList();
 }
 
-Future<File> _testAndCollect(String platform, bool headless,
+Future<File> _testAndCollect(String platform, int port, bool headless,
     List<String> testArgs, List<TestInfo> tests, Output testOutputLevel) async {
   tests = tests
       .where((test) =>
@@ -76,9 +76,9 @@ Future<File> _testAndCollect(String platform, bool headless,
   Tester tester;
 
   if (platform == 'vm') {
-    tester = VmTester(workingDir);
+    tester = VmTester(workingDir, port);
   } else if (platform == 'chrome') {
-    tester = ChromeTester(workingDir, headless);
+    tester = ChromeTester(workingDir, port, headless);
   } else {
     throw ArgumentError('Unsupported testing platform: $platform');
   }

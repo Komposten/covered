@@ -15,6 +15,7 @@ import 'package:path/path.dart' as path;
 
 abstract class Tester {
   final String projectDir;
+  final int port;
   final String platform;
 
   String get outputDir => path.join(projectDir, '.covered');
@@ -23,7 +24,7 @@ abstract class Tester {
 
   String get reportsDir => path.join(outputDir, 'reports');
 
-  Tester(this.projectDir, this.platform);
+  Tester(this.projectDir, int port, this.platform) : this.port = port ?? 8787;
 
   Future<File> testAndCollect(List<String> testArgs, List<TestInfo> tests,
       Output testOutputLevel) async {
