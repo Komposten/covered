@@ -1,4 +1,4 @@
-name: Dart CI
+name: build
 
 on:
   push:
@@ -14,16 +14,35 @@ jobs:
     strategy:
       matrix:
         dart_version: [2.2.0, latest]
-        platform: [vm, firefox]
-    
+
+    container:
+      image:  google/dart:${{ matrix.dart_version }}
+
     steps:
     - uses: actions/checkout@v1
-    - name: Install Dart SDK
-      run: cd .github/scripts && chmod +x install_dart.sh && sudo ./install_dart.sh ${{ matrix.dart_version }}
     - name: Install dependencies
       run:  /usr/lib/dart/bin/pub get
     - name: Run tests
-      run:  xvfb-run -a /usr/lib/dart/bin/pub run test -p ${{ matrix.platform }}
+      run:  pub run test -p vm
+
+#  coverage:
+#    name: Test coverage
+#    needs: test
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        dart_version: [2.2.0, latest]
+#
+#    steps:
+#    - uses: actions/checkout@v1
+#    - name: Install Dart SDK
+#      run: cd .github/scripts && chmod +x install_dart.sh && sudo ./install_dart.sh ${{ matrix.dart_version }}
+#    - name: Install dependencies
+#      run:  /usr/lib/dart/bin/pub get
+#    - name: Analyse code coverage
+#      run:  /usr/lib/dart/bin/pub run covered -p vm --report-on=lib
+#    - name: Upload coverage report
+#      run: echo Upload to codecov.io or coveralls.io
       
   analyse:
     name: Code analysis
