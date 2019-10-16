@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'dart:io';
 
 import 'package:covered/src/test_parser.dart';

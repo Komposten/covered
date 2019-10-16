@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:covered/src/utilities.dart';
 import 'package:test/test.dart';
 
