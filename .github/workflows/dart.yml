@@ -14,16 +14,21 @@ jobs:
     strategy:
       matrix:
         dart_version: [2.2.0, latest]
-
-    container:
-      image:  google/dart:${{ matrix.dart_version }}
+    env:
+      DART_SDK: /usr/lib/dart/bin
 
     steps:
     - uses: actions/checkout@v1
+    - name: Install Dart SDK
+      run: cd .github/scripts && chmod +x install_dart.sh && sudo ./install_dart.sh ${{ matrix.dart_version }}
     - name: Install dependencies
-      run:  /usr/lib/dart/bin/pub get
+      run: |
+        PATH=${PATH}:${DART_SDK}
+        pub get
     - name: Run tests
-      run:  pub run test -p vm
+      run: |
+        PATH=${PATH}:${DART_SDK}
+        xvfb-run -a pub run test -p vm
 
   test-win:
     name: Unit tests (Windows)
@@ -58,15 +63,21 @@ jobs:
 #    name: Test coverage
 #    needs: test
 #    runs-on: ubuntu-latest
+#    env:
+#      DART_SDK: /usr/lib/dart/bin
 #
 #    steps:
 #    - uses: actions/checkout@v1
 #    - name: Install Dart SDK
 #      run: cd .github/scripts && chmod +x install_dart.sh && sudo ./install_dart.sh latest
 #    - name: Install dependencies
-#      run:  /usr/lib/dart/bin/pub get
+#      run: |
+#        PATH=${PATH}:${DART_SDK}
+#        pub get
 #    - name: Analyse code coverage
-#      run:  /usr/lib/dart/bin/pub run covered -p vm --report-on=lib
+#      run: |
+#        PATH=${PATH}:${DART_SDK}
+#        xvfb-run -a pub run covered -p vm --report-on=lib
 #    - name: Upload coverage report
 #      run: echo Upload to codecov.io or coveralls.io
 
