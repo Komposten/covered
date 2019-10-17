@@ -16,6 +16,7 @@ import 'package:covered/src/js/range.dart';
 import 'package:covered/src/js/range_list.dart';
 import 'package:covered/src/js/utilities.dart' as js_utils;
 import 'package:covered/src/utilities.dart' as utils;
+import 'package:covered/src/utilities.dart';
 import 'package:path/path.dart' as path;
 
 /*TODO(komposten): Rewrite this as a class so some function parameters can be
@@ -41,7 +42,7 @@ RangeList _buildRangeList(jsCoverage) {
   jsCoverage['functions'].forEach((function) {
     _printProgress(index++, 100, functionCount, 'Compiling covered ranges');
     var functionName = function['functionName'];
-    functionName = _getUniqueName(functionName, functionNames);
+    functionName = getUniqueName(functionName, functionNames);
 
     function['ranges'].forEach((range) {
       var start = range['startOffset'];
@@ -54,18 +55,6 @@ RangeList _buildRangeList(jsCoverage) {
 
   _printProgress(functionCount, 100, functionCount, 'Compiling covered ranges');
   return rangeList;
-}
-
-String _getUniqueName(String name, Set<String> existingNames) {
-  var newName = name;
-  var i = 0;
-  while (existingNames.contains(newName)) {
-    newName = name + '\$$i';
-    i++;
-  }
-
-  existingNames.add(newName);
-  return newName;
 }
 
 Future<List<MappedRange>> _mapRangesToDart(
