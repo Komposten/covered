@@ -51,12 +51,10 @@ jobs:
       - name: Install dependencies
         run: |
           set PATH=%PATH%;%DART_SDK%;%CHROME%
-          cd dart
           pub get
       - name: Run tests
         run: |
           set PATH=%PATH%;%DART_SDK%;%CHROME%
-          cd dart
           pub run test -p vm
 
 #  coverage:
