@@ -139,6 +139,9 @@ class ChromeTester extends Tester {
         .transform(const LineSplitter())
         .listen((line) {
       stderr.writeln('>>>> $line');
+      if (line.contains('invalid auth')) {
+        stderr.writeln('>>>> this may be caused by another application using port $port');
+      }
     });
 
     var exitCode = await node.exitCode;
@@ -161,6 +164,8 @@ class ChromeTester extends Tester {
       throw 'An error occurred while communicating with Chrome (see above)!';
     } else if (exitCode == 5) {
       throw 'An error occurred while writing the coverage data (see above)!';
+    } else if (exitCode == 6) {
+      throw 'node failed to connect to Chrome DevTools (see above)!';
     } else {
       throw 'node failed with exit code $exitCode';
     }
