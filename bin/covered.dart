@@ -54,6 +54,11 @@ Future<void> main(List<String> arguments) async {
       help: 'Directories and/or files to report coverage for.'
           ' Defaults to include all classes inside the current working directory.',
       valueHelp: 'PATHS');
+  parser.addFlag('nonzero-on-fail',
+      abbr: 'z',
+      help:
+          'If covered should exit with a non-zero exit code if coverage collection fails.',
+      negatable: false);
   parser.addSeparator(
       'and testArgs are additional options passed to the test run.');
 
@@ -121,7 +126,7 @@ Future _run(ArgResults argResults, int port, Output testOutput) async {
     stdout.writeln('\nThe coverage analysis completed successfully!');
     stdout.writeln(
         'The coverage report(s) can be found in the ${path.join('.covered', 'reports')} directory.');
-  } else {
+  } else if (argResults['nonzero-on-fail']) {
     exit(1);
   }
 }
