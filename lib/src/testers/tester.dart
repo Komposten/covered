@@ -9,9 +9,9 @@
  */
 import 'dart:io';
 
-import 'package:covered/src/output.dart';
-import 'package:covered/src/testinfo.dart';
-import 'package:covered/src/utilities.dart';
+import 'package:covered/src/util/output.dart';
+import 'package:covered/src/parsing/testinfo.dart';
+import 'package:covered/src/util/utilities.dart';
 import 'package:path/path.dart' as path;
 
 abstract class Tester {
@@ -46,12 +46,15 @@ abstract class Tester {
   Future<File> _buildTestEntryPoint(List<TestInfo> tests) async {
     var file = File(path.join(internalDir, '${platform}_entrypoint.dart'));
     var output = StringBuffer();
+    var usedNames = <String>{};
 
     var data = tests.map((test) {
       var uri = test.file.absolute.uri;
       var name = path.basenameWithoutExtension(test.file.path);
+      name = getUniqueName(name, usedNames, sep: '_');
+
       return {'uri': uri.toString(), 'name': name};
-    });
+    }).toList();
 
     output.writeln('import \'package:test/test.dart\';');
     data.forEach(

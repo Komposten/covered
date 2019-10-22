@@ -8,7 +8,7 @@
  * of this project.
  */
 import 'package:collection/collection.dart';
-import 'package:covered/src/js/range.dart';
+import 'package:covered/src/js/data/range.dart';
 
 class RangeList {
   var _ranges = <Range>[];
@@ -37,14 +37,5 @@ class RangeList {
     var insertionPoint = lowerBound(_ranges, range,
         compare: (Range a, Range b) => a.start.compareTo(b.start));
     _ranges.insert(insertionPoint, range);
-
-//    for (var i = 0; i < _ranges.length; i++) {
-//      if (_ranges[i].start > range.start) {
-//        _ranges.insert(i, range);
-//        return;
-//      }
-//    }
-//
-//    _ranges.add(range);
   }
 }

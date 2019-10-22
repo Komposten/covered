@@ -9,35 +9,73 @@ on:
 
 jobs:
   test:
-    name: Unit tests
+    name: Unit tests (Ubuntu)
     runs-on: ubuntu-latest
     strategy:
       matrix:
         dart_version: [2.2.0, latest]
-
-    container:
-      image:  google/dart:${{ matrix.dart_version }}
+    env:
+      DART_SDK: /usr/lib/dart/bin
 
     steps:
     - uses: actions/checkout@v1
+    - name: Install Dart SDK
+      run: cd .github/scripts && chmod +x install_dart.sh && sudo ./install_dart.sh ${{ matrix.dart_version }}
     - name: Install dependencies
-      run:  /usr/lib/dart/bin/pub get
+      run: |
+        PATH=${PATH}:${DART_SDK}
+        pub get
     - name: Run tests
-      run:  pub run test -p vm
+      run: |
+        PATH=${PATH}:${DART_SDK}
+        xvfb-run -a pub run test -p vm
+
+  test-win:
+    name: Unit tests (Windows)
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        dart_version: [2.2.0, latest]
+    env:
+      DART_SDK: C:\tools\dart-sdk\bin
+      CHROME: '"C:\Program Files (x86)\Google\Chrome\Application"'
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Dart SDK (latest)
+        if: matrix.dart_version == 'latest'
+        run: choco install dart-sdk
+      - name: Install Dart SDK (specific version)
+        if: matrix.dart_version != 'latest'
+        run: choco install dart-sdk --version ${{ matrix.dart_version }}
+      - name: Install dependencies
+        run: |
+          set PATH=%PATH%;%DART_SDK%;%CHROME%
+          pub get
+      - name: Run tests
+        run: |
+          set PATH=%PATH%;%DART_SDK%;%CHROME%
+          pub run test -p vm
 
 #  coverage:
 #    name: Test coverage
 #    needs: test
 #    runs-on: ubuntu-latest
+#    env:
+#      DART_SDK: /usr/lib/dart/bin
 #
 #    steps:
 #    - uses: actions/checkout@v1
 #    - name: Install Dart SDK
 #      run: cd .github/scripts && chmod +x install_dart.sh && sudo ./install_dart.sh latest
 #    - name: Install dependencies
-#      run:  /usr/lib/dart/bin/pub get
+#      run: |
+#        PATH=${PATH}:${DART_SDK}
+#        pub get
 #    - name: Analyse code coverage
-#      run:  /usr/lib/dart/bin/pub run covered -p vm --report-on=lib
+#      run: |
+#        PATH=${PATH}:${DART_SDK}
+#        xvfb-run -a pub run covered -p vm --report-on=lib
 #    - name: Upload coverage report
 #      run: echo Upload to codecov.io or coveralls.io
 
@@ -53,7 +91,7 @@ jobs:
     - name: Install dependencies
       run: pub get
     - name: Run analyser
-      run: dartanalyzer lib test
+      run: dartanalyzer bin lib test
 
   format:
     name: Code format

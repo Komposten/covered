@@ -9,14 +9,14 @@
  */
 import 'dart:io';
 
-import 'package:covered/src/chrome_tester.dart';
-import 'package:covered/src/lcov.dart';
-import 'package:covered/src/output.dart';
-import 'package:covered/src/test_parser.dart';
-import 'package:covered/src/tester.dart';
-import 'package:covered/src/testinfo.dart';
-import 'package:covered/src/utilities.dart';
-import 'package:covered/src/vm_tester.dart';
+import 'package:covered/src/util/lcov.dart';
+import 'package:covered/src/util/output.dart';
+import 'package:covered/src/parsing/test_parser.dart';
+import 'package:covered/src/parsing/testinfo.dart';
+import 'package:covered/src/testers/chrome_tester.dart';
+import 'package:covered/src/testers/tester.dart';
+import 'package:covered/src/testers/vm_tester.dart';
+import 'package:covered/src/util/utilities.dart';
 import 'package:lcov/lcov.dart';
 import 'package:path/path.dart' as path;
 

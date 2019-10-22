@@ -60,3 +60,15 @@ String _getSystem(String testOnString) {
 String fixPathSeparators(String string) {
   return string.replaceAll('/', path.separator);
 }
+
+String getUniqueName(String name, Set<String> existingNames, {String sep = r'$'}) {
+  var newName = name;
+  var i = 0;
+  while (existingNames.contains(newName)) {
+    newName = '$name$sep$i';
+    i++;
+  }
+
+  existingNames.add(newName);
+  return newName;
+}

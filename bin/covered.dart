@@ -11,7 +11,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:covered/covered.dart';
-import 'package:covered/src/output.dart';
+import 'package:covered/src/util/output.dart';
 import 'package:path/path.dart' as path;
 
 Future<void> main(List<String> arguments) async {
@@ -27,6 +27,7 @@ Future<void> main(List<String> arguments) async {
       help: 'Specify what platforms to run tests on.',
       valueHelp: 'PLATFORMS');
   parser.addOption('port',
+      abbr: 'P',
       defaultsTo: '8787',
       help:
           'Which port to use for the Dart VM and Chrome observatories. Should be an integer in the range 0-65535.',
@@ -45,7 +46,7 @@ Future<void> main(List<String> arguments) async {
         'verbose': 'Display full test output.'
       });
   parser.addFlag('headless',
-      abbr: 'l',
+      abbr: 'H',
       help: 'If Chrome should be run in headless mode',
       negatable: false);
   parser.addMultiOption('report-on',
@@ -53,6 +54,11 @@ Future<void> main(List<String> arguments) async {
       help: 'Directories and/or files to report coverage for.'
           ' Defaults to include all classes inside the current working directory.',
       valueHelp: 'PATHS');
+  parser.addFlag('nonzero-on-fail',
+      abbr: 'z',
+      help:
+          'If covered should exit with a non-zero exit code if coverage collection fails.',
+      negatable: false);
   parser.addSeparator(
       'and testArgs are additional options passed to the test run.');
 
@@ -120,7 +126,7 @@ Future _run(ArgResults argResults, int port, Output testOutput) async {
     stdout.writeln('\nThe coverage analysis completed successfully!');
     stdout.writeln(
         'The coverage report(s) can be found in the ${path.join('.covered', 'reports')} directory.');
-  } else {
+  } else if (argResults['nonzero-on-fail']) {
     exit(1);
   }
 }

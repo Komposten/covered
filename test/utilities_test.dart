@@ -1,4 +1,4 @@
-import 'package:covered/src/utilities.dart';
+import 'package:covered/src/util/utilities.dart';
 import 'package:test/test.dart';
 
 void main() {

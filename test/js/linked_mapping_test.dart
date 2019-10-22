@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:covered/src/js/linked_mapping.dart';
+import 'package:covered/src/js/data/linked_mapping.dart';
 import 'package:test/test.dart';
 
 main() {

@@ -1,4 +1,4 @@
-import 'package:covered/src/js/utilities.dart';
+import 'package:covered/src/js/util/utilities.dart';
 import 'package:test/test.dart';
 
 main() {
