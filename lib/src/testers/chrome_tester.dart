@@ -12,8 +12,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:covered/src/js/coverage.dart' as js_coverage;
-import 'package:covered/src/output.dart';
-import 'package:covered/src/tester.dart';
+import 'package:covered/src/util/output.dart';
+import 'package:covered/src/testers/tester.dart';
 import 'package:path/path.dart' as path;
 import 'package:resource/resource.dart';
 
@@ -140,7 +140,8 @@ class ChromeTester extends Tester {
         .listen((line) {
       stderr.writeln('>>>> $line');
       if (line.contains('invalid auth')) {
-        stderr.writeln('>>>> this may be caused by another application using port $port');
+        stderr.writeln(
+            '>>>> this may be caused by another application using port $port');
       }
     });
 

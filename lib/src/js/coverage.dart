@@ -11,12 +11,12 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:covered/src/js/linked_mapping.dart';
-import 'package:covered/src/js/range.dart';
-import 'package:covered/src/js/range_list.dart';
-import 'package:covered/src/js/utilities.dart' as js_utils;
-import 'package:covered/src/utilities.dart' as utils;
-import 'package:covered/src/utilities.dart';
+import 'package:covered/src/js/data/linked_mapping.dart';
+import 'package:covered/src/js/data/range.dart';
+import 'package:covered/src/js/data/range_list.dart';
+import 'package:covered/src/js/util/utilities.dart' as js_utils;
+import 'package:covered/src/util/utilities.dart' as utils;
+import 'package:covered/src/util/utilities.dart';
 import 'package:path/path.dart' as path;
 
 /*TODO(komposten): Rewrite this as a class so some function parameters can be

@@ -8,7 +8,8 @@
  * of this project.
  */
 import 'dart:io';
-import 'testinfo.dart';
+
+import 'package:covered/src/parsing/testinfo.dart';
 
 class TestParser {
   TestInfo parse(FileSystemEntity entity) {

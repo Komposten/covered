@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:covered/src/test_parser.dart';
+import 'package:covered/src/parsing/test_parser.dart';
 import 'package:test/test.dart';
 
 void main() {

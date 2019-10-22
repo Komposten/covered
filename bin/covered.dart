@@ -11,7 +11,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:covered/covered.dart';
-import 'package:covered/src/output.dart';
+import 'package:covered/src/util/output.dart';
 import 'package:path/path.dart' as path;
 
 Future<void> main(List<String> arguments) async {

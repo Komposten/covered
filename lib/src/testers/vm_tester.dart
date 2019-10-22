@@ -12,8 +12,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:coverage/coverage.dart' as coverage;
-import 'package:covered/src/output.dart';
-import 'package:covered/src/tester.dart';
+import 'package:covered/src/util/output.dart';
+import 'package:covered/src/testers/tester.dart';
 import 'package:path/path.dart' as path;
 
 class VmTester extends Tester {
