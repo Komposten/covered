@@ -1,3 +1,15 @@
+## 0.1.1
+**Features**
+- Add "nonzero-on-fail" command line option.
+- Update abbreviations for command line options.
+
+**Fixes**
+- Improve logging when node fails to connect to Chrome DevTools.
+- Fix crash if two test files had the same name.
+
+**Other**
+- Update internal package structure.
+
 ## 0.1.0
 **Features**
 - Collect coverage from Dart VM and Chrome tests.
