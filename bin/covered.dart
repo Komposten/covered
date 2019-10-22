@@ -27,6 +27,7 @@ Future<void> main(List<String> arguments) async {
       help: 'Specify what platforms to run tests on.',
       valueHelp: 'PLATFORMS');
   parser.addOption('port',
+      abbr: 'P',
       defaultsTo: '8787',
       help:
           'Which port to use for the Dart VM and Chrome observatories. Should be an integer in the range 0-65535.',
@@ -45,7 +46,7 @@ Future<void> main(List<String> arguments) async {
         'verbose': 'Display full test output.'
       });
   parser.addFlag('headless',
-      abbr: 'l',
+      abbr: 'H',
       help: 'If Chrome should be run in headless mode',
       negatable: false);
   parser.addMultiOption('report-on',
