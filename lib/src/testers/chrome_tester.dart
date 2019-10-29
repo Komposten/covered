@@ -8,6 +8,7 @@
  * of this project.
  */
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -104,7 +105,7 @@ class ChromeTester extends Tester {
 
     stdout.writeln('>> Launching Chrome...');
     var chrome = await _launchChrome();
-
+    var uriCompleter = Completer<Uri>();
     chrome.stdout
         .transform(utf8.decoder)
         .transform(const LineSplitter())
@@ -116,6 +117,17 @@ class ChromeTester extends Tester {
         .transform(const LineSplitter())
         .listen((line) {
       stderr.writeln('C>>> $line');
+      if (!uriCompleter.isCompleted) {
+        final uri = _getDevToolsUri(line);
+        if (uri != null) {
+          uriCompleter.complete(uri);
+        }
+      }
+    });
+
+    await uriCompleter.future.timeout(Duration(seconds: 30), onTimeout: () {
+      chrome.kill(ProcessSignal.sigterm);
+        throw 'Chrome failed to provide a DevTools URL!';
     });
 
     stdout.writeln('>> Running tests...');
@@ -150,6 +162,22 @@ class ChromeTester extends Tester {
     _handleNodeExitCode(exitCode);
 
     return File(path.join(internalDir, 'js_reports', 'chrome.json'));
+  }
+
+  Uri _getDevToolsUri(String str) {
+    final regex = RegExp(r'DevTools listening on ([^\s]+)(?:\s|$)');
+    final match = regex.firstMatch(str);
+    Uri uri;
+
+    if (match != null) {
+      try {
+        uri = Uri.parse(match.group(1));
+      } on FormatException {
+        //invalid uri; return null
+      }
+    }
+
+    return uri;
   }
 
   void _handleNodeExitCode(int exitCode) {
