@@ -121,7 +121,7 @@ class ChromeTester extends Tester {
     stdout.writeln('>> Running tests...');
     var nodeArgs = [
       nodeEntrypoint.path,
-      '8787',
+      port.toString(),
       path.context.toUri(htmlPath).toString(),
       path.context.toUri(jsPath).toString(),
       outputLevel.toString().substring(outputLevel.toString().indexOf('.') + 1)
