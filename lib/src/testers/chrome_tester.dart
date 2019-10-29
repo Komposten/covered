@@ -221,8 +221,11 @@ class ChromeTester extends Tester {
       chromeArgs.insert(1, '--headless');
     }
 
+    var processName = (Platform.isWindows
+        ? 'chrome.exe'
+        : Platform.isMacOS ? 'Google Chrome' : 'google-chrome');
     return await Process.start(
-      'chrome',
+      processName,
       chromeArgs,
       workingDirectory: projectDir,
     );
