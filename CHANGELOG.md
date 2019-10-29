@@ -1,3 +1,7 @@
+## 0.1.1+2
+**Fixes**
+- Fix Chrome executable name for non-Windows systems.
+
 ## 0.1.1+1
 **Fixes**
 - Fix npm failing to run on non-Windows systems.

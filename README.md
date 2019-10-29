@@ -30,7 +30,7 @@ pub run covered --platforms vm,chrome --headless --test-output short --report-on
 ```
 
 ### Software requirements for browser coverage
-* Chrome: Used for running the browser tests.
+* Chrome: Used for running the browser tests. Currently the Chrome executable (`chrome.exe`, `google-chrome` or `Google Chrome`, for Windows, Linux and MacOS respectively) must be in `PATH`.
 * Node: Used for connecting to the Chrome's remote interface to collect coverage.
 
 ## Limitations
