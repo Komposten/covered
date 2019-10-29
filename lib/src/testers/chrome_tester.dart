@@ -100,7 +100,7 @@ class ChromeTester extends Tester {
     var nodeEntrypoint = await _copyNodeEntrypoint();
 
     stdout.writeln('>> Running npm...');
-    await runNpm(nodeEntrypoint);
+    await _runNpm(nodeEntrypoint);
 
     stdout.writeln('>> Launching Chrome...');
     var chrome = await _launchChrome();
@@ -147,12 +147,12 @@ class ChromeTester extends Tester {
 
     var exitCode = await node.exitCode;
     chrome.kill(ProcessSignal.sigterm);
-    handleNodeExitCode(exitCode);
+    _handleNodeExitCode(exitCode);
 
     return File(path.join(internalDir, 'js_reports', 'chrome.json'));
   }
 
-  void handleNodeExitCode(int exitCode) {
+  void _handleNodeExitCode(int exitCode) {
     if (exitCode == 0) {
       return;
     } else if (exitCode == 1) {
@@ -172,7 +172,7 @@ class ChromeTester extends Tester {
     }
   }
 
-  Future<void> runNpm(File nodeEntrypoint) async {
+  Future<void> _runNpm(File nodeEntrypoint) async {
     var npm = await Process.start('npm.cmd', ['install'],
         workingDirectory: nodeEntrypoint.parent.path);
     npm.stdout
