@@ -12,8 +12,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:covered/src/js/coverage.dart' as js_coverage;
-import 'package:covered/src/util/output.dart';
 import 'package:covered/src/testers/tester.dart';
+import 'package:covered/src/util/output.dart';
 import 'package:path/path.dart' as path;
 import 'package:resource/resource.dart';
 
@@ -100,7 +100,7 @@ class ChromeTester extends Tester {
     var nodeEntrypoint = await _copyNodeEntrypoint();
 
     stdout.writeln('>> Running npm...');
-    await runNpm(nodeEntrypoint);
+    await _runNpm(nodeEntrypoint);
 
     stdout.writeln('>> Launching Chrome...');
     var chrome = await _launchChrome();
@@ -147,12 +147,12 @@ class ChromeTester extends Tester {
 
     var exitCode = await node.exitCode;
     chrome.kill(ProcessSignal.sigterm);
-    handleNodeExitCode(exitCode);
+    _handleNodeExitCode(exitCode);
 
     return File(path.join(internalDir, 'js_reports', 'chrome.json'));
   }
 
-  void handleNodeExitCode(int exitCode) {
+  void _handleNodeExitCode(int exitCode) {
     if (exitCode == 0) {
       return;
     } else if (exitCode == 1) {
@@ -172,8 +172,9 @@ class ChromeTester extends Tester {
     }
   }
 
-  Future<void> runNpm(File nodeEntrypoint) async {
-    var npm = await Process.start('npm.cmd', ['install'],
+  Future<void> _runNpm(File nodeEntrypoint) async {
+    var processName = (Platform.isWindows ? 'npm.cmd' : 'npm');
+    var npm = await Process.start(processName, ['install'],
         workingDirectory: nodeEntrypoint.parent.path);
     npm.stdout
         .transform(utf8.decoder)

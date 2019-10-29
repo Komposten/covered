@@ -1,6 +1,6 @@
 name: covered
 description: Code coverage for Dart applications running in the Dart VM and browsers.
-version: 0.1.1
+version: 0.1.1+1
 homepage: https://www.github.com/komposten/
 repository: https://www.github.com/komposten/covered
 issue_tracker: https://www.github.com/komposten/covered/issues

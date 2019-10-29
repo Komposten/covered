@@ -50,11 +50,11 @@ jobs:
         run: choco install dart-sdk --version ${{ matrix.dart_version }}
       - name: Install dependencies
         run: |
-          set PATH=%PATH%;%DART_SDK%;%CHROME%
+          $env:PATH += ';' + $env:DART_SDK + ';' + $env:CHROME
           pub get
       - name: Run tests
         run: |
-          set PATH=%PATH%;%DART_SDK%;%CHROME%
+          $env:PATH += ';' + $env:DART_SDK + ';' + $env:CHROME
           pub run test -p vm
 
 #  coverage:

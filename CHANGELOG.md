@@ -1,3 +1,7 @@
+## 0.1.1+1
+**Fixes**
+- Fix npm failing to run on non-Windows systems.
+
 ## 0.1.1
 **Features**
 - Add "nonzero-on-fail" command line option.
