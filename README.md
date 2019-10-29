@@ -51,6 +51,7 @@ covered currently has a couple of important limitations which I hope to resolve 
   * Getting `test` to use dartdevc instead of dart2js. dartdevc provides slightly different JS code that happens to work better with Chrome's coverage tool.
   * Intercepting execution of browser tests after Chrome has opened and before the tests are run (to start coverage collection).
 * Add Node.js as a test platform.
+* Get rid of Node.js as a dependency for collecting coverage on Chrome. 
 
 ## License
 covered is licensed under the MIT license. See [LICENSE](https://github.com/Komposten/covered/blob/master/LICENSE) for the full license text.
