@@ -12,8 +12,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:covered/src/js/coverage.dart' as js_coverage;
-import 'package:covered/src/util/output.dart';
 import 'package:covered/src/testers/tester.dart';
+import 'package:covered/src/util/output.dart';
 import 'package:path/path.dart' as path;
 import 'package:resource/resource.dart';
 
@@ -173,7 +173,8 @@ class ChromeTester extends Tester {
   }
 
   Future<void> _runNpm(File nodeEntrypoint) async {
-    var npm = await Process.start('npm.cmd', ['install'],
+    var processName = (Platform.isWindows ? 'npm.cmd' : 'npm');
+    var npm = await Process.start(processName, ['install'],
         workingDirectory: nodeEntrypoint.parent.path);
     npm.stdout
         .transform(utf8.decoder)
