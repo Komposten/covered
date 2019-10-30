@@ -243,6 +243,7 @@ class ChromeTester extends Tester {
       '--no-default-browser-check',
       '--disable-default-apps',
       '--disable-translate',
+      '--disable-dev-shm-usage'
     ];
 
     if (headless) {
